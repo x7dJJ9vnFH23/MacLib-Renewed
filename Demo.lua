@@ -1,4 +1,4 @@
-local WMacLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Qiwikox12/PigHub/refs/heads/main/raw__6_%20(4).txt"))()
+local WMacLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Wicikk/WMacLib/main/WMacLib.lua"))()
 
 local Window = WMacLib:Window({
 	Title = "Maclib Demo",
