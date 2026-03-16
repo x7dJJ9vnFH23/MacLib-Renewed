@@ -251,7 +251,7 @@ sections.MainSection1:SubLabel({
 	Text = "Sub-Label"
 })
 
-MacLib:SetFolder("Maclib")
+WMacLib:SetFolder("Maclib")
 tabs.Settings:InsertConfigSection("Left")
 
 Window.onUnloaded(function()
@@ -259,4 +259,4 @@ Window.onUnloaded(function()
 end)
 
 tabs.Main:Select()
-MacLib:LoadAutoLoadConfig()
+WMacLib:LoadAutoLoadConfig()
