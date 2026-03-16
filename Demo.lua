@@ -55,12 +55,13 @@ local tabGroups = {
 }
 
 local tabs = {
-	Main = tabGroups.TabGroup1:Tab({ Name = "Demo", Image = "rbxassetid://18821914323" }),
-	Settings = tabGroups.TabGroup1:Tab({ Name = "Settings", Image = "rbxassetid://10734950309" })
+	Main = tabGroups.TabGroup1:Tab({ Name = "Demo", Image = WMacLib:GetIcon("lucide/layout-dashboard") }),
+	Misc = tabGroups.TabGroup1:Tab({ Name = "Misc", Image = WMacLib:GetIcon("lucide/settings") }),
+	Settings = tabGroups.TabGroup1:Tab({ Name = "Settings", Image = WMacLib:GetIcon("lucide/sliders-horizontal") })
 }
 
 local sections = {
-	MainSection1 = tabs.Main:Section({ Side = "Left" }),
+	MainSection1 = tabs.Main:Section({}),
 }
 
 sections.MainSection1:Header({
@@ -171,7 +172,6 @@ sections.MainSection1:Toggle({
 	Default = false,
 	Callback = function(value)
 		rainbowActive = value
-
 		if rainbowActive then
 			rainbowConnection = game:GetService("RunService").RenderStepped:Connect(function(deltaTime)
 				hue = (hue + deltaTime * 0.1) % 1
@@ -185,16 +185,8 @@ sections.MainSection1:Toggle({
 }, "RainbowToggle")
 
 local optionTable = {
-	"Apple",
-	"Banana",
-	"Orange",
-	"Grapes",
-	"Pineapple",
-	"Mango",
-	"Strawberry",
-	"Blueberry",
-	"Watermelon",
-	"Peach"
+	"Apple", "Banana", "Orange", "Grapes", "Pineapple",
+	"Mango", "Strawberry", "Blueberry", "Watermelon", "Peach"
 }
 
 local Dropdown = sections.MainSection1:Dropdown({
@@ -232,8 +224,6 @@ sections.MainSection1:Button({
 	end,
 })
 
-sections.MainSection1:Divider()
-
 sections.MainSection1:Header({
 	Text = "Header #2"
 })
@@ -252,7 +242,38 @@ sections.MainSection1:SubLabel({
 })
 
 WMacLib:SetFolder("Maclib")
-tabs.Settings:InsertConfigSection("Left")
+
+local miscSection = tabs.Misc:Section({})
+
+miscSection:Dropdown({
+	Name = "Theme",
+	Options = WMacLib:GetThemes(),
+	Callback = function(value)
+		WMacLib:SetTheme(value)
+	end,
+})
+
+miscSection:Slider({
+	Name = "Window Size",
+	Default = 50,
+	Minimum = 0,
+	Maximum = 100,
+	DisplayMethod = "Percent",
+	Precision = 0,
+	Callback = function(value)
+		local t = value / 100
+		Window:SetSize(UDim2.fromOffset(400 + (1000 - 400) * t, 250 + (800 - 250) * t))
+	end,
+})
+
+miscSection:Button({
+	Name = "Unload",
+	Callback = function()
+		Window:Unload()
+	end,
+})
+
+tabs.Settings:InsertConfigSection()
 
 Window.onUnloaded(function()
 	print("Unloaded!")
