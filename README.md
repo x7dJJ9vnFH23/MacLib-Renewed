@@ -1,6 +1,6 @@
 # WMacLib
-
-**WMacLib** is a fork of the original [MacLib](https://github.com) UI library with bug fixes.
+![image](https://github.com/user-attachments/assets/991cd465-8a61-4753-9fa6-dfd590bc4322)
+**WMacLib** is a fork of the original [MacLib](https://github.com/biggaboy212/Maclib) UI library with bug fixes.
 
 **What's fixed compared to the original:**
  - Sliders work on mobile devices
