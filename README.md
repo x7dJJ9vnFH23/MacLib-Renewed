@@ -1,11 +1,11 @@
 # WMacLib
 
-> **WMacLib** is a fork of the original [MacLib](https://github.com) UI library with bug fixes.
->
-> **What's fixed compared to the original:**
-> - ✅ Sliders work on mobile devices
-> - ✅ Window dragging no longer cancels on mobile
-> - ✅ Third window control button now correctly shows as green (like macOS)
+**WMacLib** is a fork of the original [MacLib](https://github.com) UI library with bug fixes.
+
+**What's fixed compared to the original:**
+ - Sliders work on mobile devices
+ - Window dragging no longer cancels on mobile
+ - Third window control button now correctly shows as green (like macOS)
 
 ---
 
