@@ -41,6 +41,41 @@ local Window = WMacLib:Window({
 | `AcrylicBlur` | boolean | `true` | Background blur effect |
 | `ShowUserInfo` | boolean | `true` | Show player avatar/name in sidebar |
 | `DisabledWindowControls` | table | `{}` | Disable buttons e.g. `{"Exit", "Minimize"}` |
+| `Theme` | string | — | Name of a theme registered with `WMacLib:AddTheme()` |
+
+---
+
+## Themes
+
+Theme is optional. Without it the default dark style is used.
+
+```lua
+WMacLib:AddTheme({
+    Name        = "My Theme",
+    Background  = Color3.fromHex("#101010"),
+    Accent      = Color3.fromHex("#18181b"),
+    Outline     = Color3.fromHex("#FFFFFF"),
+    Text        = Color3.fromHex("#FFFFFF"),
+    Placeholder = Color3.fromHex("#7a7a7a"),
+    Button      = Color3.fromHex("#52525b"),
+    Icon        = Color3.fromHex("#a1a1aa"),
+})
+
+local Window = WMacLib:Window({
+    Title = "My Script",
+    Theme = "My Theme",
+})
+```
+
+| Field | Affects |
+|---|---|
+| `Background` | Window, notification, dialog background |
+| `Accent` | Dialog button background |
+| `Outline` | All borders |
+| `Text` | All text labels |
+| `Placeholder` | Placeholder / muted text |
+| `Button` | Toggle & slider track |
+| `Icon` | Icon color |
 
 ---
 
