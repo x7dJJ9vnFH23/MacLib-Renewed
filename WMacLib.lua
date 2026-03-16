@@ -1,25 +1,79 @@
-local MacLib = { 
+local WMacLib = { 
 	Options = {}, 
 	Folder = "Maclib", 
+	Themes = {},
+	CurrentTheme = "Dark",
+	themeCallbacks = {},
 	GetService = function(service)
 		return cloneref and cloneref(game:GetService(service)) or game:GetService(service)
-	end
+	end,
+	AddTheme = function(self, ThemeData)
+		self.Themes[ThemeData.Name] = ThemeData
+	end,
+	GetThemes = function(self)
+		local list = {}
+		for name in pairs(self.Themes) do
+			table.insert(list, name)
+		end
+		return list
+	end,
+	SetTheme = function(self, name)
+		if self.Themes[name] then
+			self.CurrentTheme = name
+			for _, cb in ipairs(self.themeCallbacks) do
+				cb(name)
+			end
+		end
+	end,
 }
 
-MacLib.Themes = {}
-
-function MacLib:AddTheme(ThemeData)
-	MacLib.Themes[ThemeData.Name] = ThemeData
+do
+	local _iconsV2
+	function WMacLib:GetIcon(path)
+		if not _iconsV2 then
+			_iconsV2 = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/Footagesus/Icons/main/Main-v2.lua"))()
+		end
+		local iconType, iconName = path:match("^(.+)/(.+)$")
+		if iconType and iconName then
+			_iconsV2.SetIconsType(iconType)
+			return _iconsV2.GetIcon(iconName)
+		end
+		return _iconsV2.GetIcon(path)
+	end
 end
 
+WMacLib:AddTheme({
+	Name = "Dark",
+	Accent = Color3.fromRGB(24, 24, 27),
+	Background = Color3.fromRGB(15, 15, 15),
+	Surface = Color3.fromRGB(255, 255, 255),
+	Outline = Color3.fromRGB(255, 255, 255),
+	Text = Color3.fromRGB(255, 255, 255),
+	Placeholder = Color3.fromRGB(122, 122, 122),
+	Button = Color3.fromRGB(87, 86, 86),
+	Icon = Color3.fromRGB(180, 180, 180),
+})
+
+WMacLib:AddTheme({
+	Name = "Light",
+	Accent = Color3.fromRGB(210, 210, 218),
+	Background = Color3.fromRGB(245, 245, 245),
+	Surface = Color3.fromRGB(30, 30, 40),
+	Outline = Color3.fromRGB(0, 0, 0),
+	Text = Color3.fromRGB(20, 20, 20),
+	Placeholder = Color3.fromRGB(100, 100, 110),
+	Button = Color3.fromRGB(160, 160, 170),
+	Icon = Color3.fromRGB(60, 60, 70),
+})
+
 --// Services
-local TweenService = MacLib.GetService("TweenService")
-local RunService = MacLib.GetService("RunService")
-local HttpService = MacLib.GetService("HttpService")
-local ContentProvider = MacLib.GetService("ContentProvider")
-local UserInputService = MacLib.GetService("UserInputService")
-local Lighting = MacLib.GetService("Lighting")
-local Players = MacLib.GetService("Players")
+local TweenService = WMacLib.GetService("TweenService")
+local RunService = WMacLib.GetService("RunService")
+local HttpService = WMacLib.GetService("HttpService")
+local ContentProvider = WMacLib.GetService("ContentProvider")
+local UserInputService = WMacLib.GetService("UserInputService")
+local Lighting = WMacLib.GetService("Lighting")
+local Players = WMacLib.GetService("Players")
 
 --// Variables
 local isStudio = RunService:IsStudio()
@@ -62,7 +116,7 @@ local function GetGui()
 	local parent = RunService:IsStudio() 
 		and LocalPlayer:FindFirstChild("PlayerGui")
 		or (gethui and gethui())
-		or (cloneref and cloneref(MacLib.GetService("CoreGui")) or MacLib.GetService("CoreGui"))
+		or (cloneref and cloneref(WMacLib.GetService("CoreGui")) or WMacLib.GetService("CoreGui"))
 
 	newGui.Parent = parent
 	return newGui
@@ -73,7 +127,7 @@ local function Tween(instance, tweeninfo, propertytable)
 end
 
 --// Library Functions
-function MacLib:Window(Settings)
+function WMacLib:Window(Settings)
 	local WindowFunctions = {Settings = Settings}
 	if Settings.AcrylicBlur ~= nil then
 		acrylicBlur = Settings.AcrylicBlur
@@ -84,6 +138,7 @@ function MacLib:Window(Settings)
 	local _defaultTheme = {
 		Accent = Color3.fromRGB(24, 24, 27),
 		Background = Color3.fromRGB(15, 15, 15),
+		Surface = Color3.fromRGB(255, 255, 255),
 		Outline = Color3.fromRGB(255, 255, 255),
 		Text = Color3.fromRGB(255, 255, 255),
 		Placeholder = Color3.fromRGB(122, 122, 122),
@@ -92,10 +147,15 @@ function MacLib:Window(Settings)
 	}
 	local Theme = {}
 	do
-		local src = (Settings.Theme and MacLib.Themes[Settings.Theme]) or {}
+		local src = WMacLib.Themes[Settings.Theme or WMacLib.CurrentTheme] or {}
 		for k, v in pairs(_defaultTheme) do
 			Theme[k] = src[k] or v
 		end
+	end
+	local themeRegistry = {}
+	local function setThemed(inst, prop, key)
+		inst[prop] = Theme[key]
+		table.insert(themeRegistry, {inst = inst, prop = prop, key = key})
 	end
 
 	local macLib = GetGui()
@@ -129,7 +189,7 @@ function MacLib:Window(Settings)
 	local base = Instance.new("Frame")
 	base.Name = "Base"
 	base.AnchorPoint = Vector2.new(0.5, 0.5)
-	base.BackgroundColor3 = Theme.Background
+	setThemed(base, "BackgroundColor3", "Background")
 	base.BackgroundTransparency = Settings.AcrylicBlur and 0.05 or 0
 	base.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	base.BorderSizePixel = 0
@@ -148,7 +208,7 @@ function MacLib:Window(Settings)
 	local baseUIStroke = Instance.new("UIStroke")
 	baseUIStroke.Name = "BaseUIStroke"
 	baseUIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	baseUIStroke.Color = Theme.Outline
+	setThemed(baseUIStroke, "Color", "Outline")
 	baseUIStroke.Transparency = 0.9
 	baseUIStroke.Parent = base
 
@@ -225,7 +285,7 @@ function MacLib:Window(Settings)
 	local stroke = Instance.new("UIStroke")
 	stroke.Name = "BaseUIStroke"
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	stroke.Color = Theme.Outline
+	setThemed(stroke, "Color", "Outline")
 	stroke.Transparency = windowControlSettings.strokeTransparency
 
 	local exit = Instance.new("TextButton")
@@ -416,7 +476,7 @@ function MacLib:Window(Settings)
 		Enum.FontStyle.Normal
 	)
 	title.Text = Settings.Title
-	title.TextColor3 = Theme.Text
+	setThemed(title, "TextColor3", "Text")
 	title.RichText = true
 	title.TextSize = 18
 	title.TextTransparency = 0.1
@@ -441,7 +501,7 @@ function MacLib:Window(Settings)
 	subtitle.RichText = true
 	subtitle.Text = Settings.Subtitle
 	subtitle.RichText = true
-	subtitle.TextColor3 = Theme.Text
+	setThemed(subtitle, "TextColor3", "Text")
 	subtitle.TextSize = 12
 	subtitle.TextTransparency = 0.7
 	subtitle.TextTruncate = Enum.TextTruncate.SplitWord
@@ -531,7 +591,7 @@ function MacLib:Window(Settings)
 	local baseUIStroke2 = Instance.new("UIStroke")
 	baseUIStroke2.Name = "BaseUIStroke"
 	baseUIStroke2.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	baseUIStroke2.Color = Theme.Outline
+	setThemed(baseUIStroke2, "Color", "Outline")
 	baseUIStroke2.Transparency = 0.9
 	baseUIStroke2.Parent = headshot
 
@@ -554,7 +614,7 @@ function MacLib:Window(Settings)
 		Enum.FontStyle.Normal
 	)
 	displayName.Text = LocalPlayer.DisplayName
-	displayName.TextColor3 = Theme.Text
+	setThemed(displayName, "TextColor3", "Text")
 	displayName.TextSize = 13
 	displayName.TextTransparency = 0.1
 	displayName.TextTruncate = Enum.TextTruncate.SplitWord
@@ -588,7 +648,7 @@ function MacLib:Window(Settings)
 		Enum.FontStyle.Normal
 	)
 	username.Text = "@" .. LocalPlayer.Name
-	username.TextColor3 = Theme.Text
+	setThemed(username, "TextColor3", "Text")
 	username.TextSize = 12
 	username.TextTransparency = 0.7
 	username.TextTruncate = Enum.TextTruncate.SplitWord
@@ -716,11 +776,12 @@ function MacLib:Window(Settings)
 		if resizingContent and input.UserInputType == Enum.UserInputType.MouseMovement then
 			local deltaX = UserInputService:GetMouseLocation().X - initialMouseX
 			local newSidebarWidth = initialSidebarWidth + deltaX
+			local currentMax = base.AbsoluteSize.X - minSidebarWidth
 
 			if math.abs(newSidebarWidth - defaultSidebarWidth) < snapRange then
 				newSidebarWidth = defaultSidebarWidth
 			else
-				newSidebarWidth = math.clamp(newSidebarWidth, minSidebarWidth, maxSidebarWidth)
+				newSidebarWidth = math.clamp(newSidebarWidth, minSidebarWidth, currentMax)
 			end
 
 			sidebar.Size = UDim2.new(0, newSidebarWidth, 1, 0)
@@ -884,7 +945,7 @@ function MacLib:Window(Settings)
 	currentTab.RichText = true
 	currentTab.Text = ""
 	currentTab.RichText = true
-	currentTab.TextColor3 = Theme.Text
+	setThemed(currentTab, "TextColor3", "Text")
 	currentTab.TextSize = 15
 	currentTab.TextTransparency = 0.5
 	currentTab.TextTruncate = Enum.TextTruncate.SplitWord
@@ -909,7 +970,7 @@ function MacLib:Window(Settings)
 	local globalSettings = Instance.new("Frame")
 	globalSettings.Name = "GlobalSettings"
 	globalSettings.AutomaticSize = Enum.AutomaticSize.XY
-	globalSettings.BackgroundColor3 = Theme.Background
+	setThemed(globalSettings, "BackgroundColor3", "Background")
 	globalSettings.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	globalSettings.BorderSizePixel = 0
 	globalSettings.Position = UDim2.fromScale(0.298, 0.104)
@@ -917,7 +978,7 @@ function MacLib:Window(Settings)
 	local globalSettingsUIStroke = Instance.new("UIStroke")
 	globalSettingsUIStroke.Name = "GlobalSettingsUIStroke"
 	globalSettingsUIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	globalSettingsUIStroke.Color = Theme.Outline
+	setThemed(globalSettingsUIStroke, "Color", "Outline")
 	globalSettingsUIStroke.Transparency = 0.9
 	globalSettingsUIStroke.Parent = globalSettings
 
@@ -1238,7 +1299,7 @@ function MacLib:Window(Settings)
 		settingName.FontFace = Font.new(assets.interFont)
 		settingName.Text = Settings.Name
 		settingName.RichText = true
-		settingName.TextColor3 = Theme.Text
+		setThemed(settingName, "TextColor3", "Text")
 		settingName.TextSize = 13
 		settingName.TextTransparency = 0.5
 		settingName.TextTruncate = Enum.TextTruncate.SplitWord
@@ -1270,7 +1331,7 @@ function MacLib:Window(Settings)
 			Enum.FontStyle.Normal
 		)
 		checkmark.Text = "✓"
-		checkmark.TextColor3 = Theme.Text
+		setThemed(checkmark, "TextColor3", "Text")
 		checkmark.TextSize = 13
 		checkmark.TextTransparency = 1
 		checkmark.TextXAlignment = Enum.TextXAlignment.Left
@@ -1432,7 +1493,7 @@ function MacLib:Window(Settings)
 			local tabSwitcherUIStroke = Instance.new("UIStroke")
 			tabSwitcherUIStroke.Name = "TabSwitcherUIStroke"
 			tabSwitcherUIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-			tabSwitcherUIStroke.Color = Theme.Outline
+			setThemed(tabSwitcherUIStroke, "Color", "Outline")
 			tabSwitcherUIStroke.Transparency = 1
 			tabSwitcherUIStroke.Parent = tabSwitcher
 
@@ -1468,7 +1529,7 @@ function MacLib:Window(Settings)
 			)
 			tabSwitcherName.Text = Settings.Name
 			tabSwitcherName.RichText = true
-			tabSwitcherName.TextColor3 = Theme.Text
+			setThemed(tabSwitcherName, "TextColor3", "Text")
 			tabSwitcherName.TextSize = 16
 			tabSwitcherName.TextTransparency = 0.5
 			tabSwitcherName.TextTruncate = Enum.TextTruncate.SplitWord
@@ -1564,7 +1625,7 @@ function MacLib:Window(Settings)
 				local section = Instance.new("Frame")
 				section.Name = "Section"
 				section.AutomaticSize = Enum.AutomaticSize.Y
-				section.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+				setThemed(section, "BackgroundColor3", "Surface")
 				section.BackgroundTransparency = 0.98
 				section.BorderColor3 = Color3.fromRGB(0, 0, 0)
 				section.BorderSizePixel = 0
@@ -1580,7 +1641,7 @@ function MacLib:Window(Settings)
 				local sectionUIStroke = Instance.new("UIStroke")
 				sectionUIStroke.Name = "SectionUIStroke"
 				sectionUIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-				sectionUIStroke.Color = Theme.Outline
+				setThemed(sectionUIStroke, "Color", "Outline")
 				sectionUIStroke.Transparency = 0.95
 				sectionUIStroke.Parent = section
 
@@ -1614,7 +1675,7 @@ function MacLib:Window(Settings)
 					buttonInteract.Name = "ButtonInteract"
 					buttonInteract.FontFace = Font.new(assets.interFont)
 					buttonInteract.RichText = true
-					buttonInteract.TextColor3 = Theme.Text
+					setThemed(buttonInteract, "TextColor3", "Text")
 					buttonInteract.TextSize = 13
 					buttonInteract.TextTransparency = 0.5
 					buttonInteract.TextTruncate = Enum.TextTruncate.AtEnd
@@ -1686,7 +1747,7 @@ function MacLib:Window(Settings)
 					end
 
 					if Flag then
-						MacLib.Options[Flag] = ButtonFunctions
+						WMacLib.Options[Flag] = ButtonFunctions
 					end
 					return ButtonFunctions
 				end
@@ -1708,7 +1769,7 @@ function MacLib:Window(Settings)
 					toggleName.FontFace = Font.new(assets.interFont)
 					toggleName.Text = ToggleFunctions.Settings.Name
 					toggleName.RichText = true
-					toggleName.TextColor3 = Theme.Text
+					setThemed(toggleName, "TextColor3", "Text")
 					toggleName.TextSize = 13
 					toggleName.TextTransparency = 0.5
 					toggleName.TextTruncate = Enum.TextTruncate.AtEnd
@@ -1727,7 +1788,7 @@ function MacLib:Window(Settings)
 					local toggle1 = Instance.new("ImageButton")
 					toggle1.Name = "Toggle"
 					toggle1.Image = assets.toggleBackground
-					toggle1.ImageColor3 = Theme.Button
+					setThemed(toggle1, "ImageColor3", "Button")
 					toggle1.AutoButtonColor = false
 					toggle1.AnchorPoint = Vector2.new(1, 0.5)
 					toggle1.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -1749,7 +1810,7 @@ function MacLib:Window(Settings)
 					local togglerHead = Instance.new("ImageLabel")
 					togglerHead.Name = "TogglerHead"
 					togglerHead.Image = assets.togglerHead
-					togglerHead.ImageColor3 = Color3.fromRGB(255, 255, 255)
+					setThemed(togglerHead, "ImageColor3", "Icon")
 					togglerHead.AnchorPoint = Vector2.new(1, 0.5)
 					togglerHead.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 					togglerHead.BackgroundTransparency = 1
@@ -1825,7 +1886,7 @@ function MacLib:Window(Settings)
 					end
 
 					if Flag then
-						MacLib.Options[Flag] = ToggleFunctions
+						WMacLib.Options[Flag] = ToggleFunctions
 					end
 					return ToggleFunctions
 				end
@@ -1847,7 +1908,7 @@ function MacLib:Window(Settings)
 					sliderName.FontFace = Font.new(assets.interFont)
 					sliderName.Text = SliderFunctions.Settings.Name
 					sliderName.RichText = true
-					sliderName.TextColor3 = Theme.Text
+					setThemed(sliderName, "TextColor3", "Text")
 					sliderName.TextSize = 13
 					sliderName.TextTransparency = 0.5
 					sliderName.TextTruncate = Enum.TextTruncate.AtEnd
@@ -1875,11 +1936,11 @@ function MacLib:Window(Settings)
 					local sliderValue = Instance.new("TextBox")
 					sliderValue.Name = "SliderValue"
 					sliderValue.FontFace = Font.new(assets.interFont)
-					sliderValue.TextColor3 = Theme.Text
+					setThemed(sliderValue, "TextColor3", "Text")
 					sliderValue.TextSize = 12
 					sliderValue.TextTransparency = 0.1
-					sliderValue.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-					sliderValue.BackgroundTransparency = 0.95
+					setThemed(sliderValue, "BackgroundColor3", "Surface")
+					sliderValue.BackgroundTransparency = 0.92
 					sliderValue.BorderColor3 = Color3.fromRGB(0, 0, 0)
 					sliderValue.BorderSizePixel = 0
 					sliderValue.LayoutOrder = 1
@@ -1895,7 +1956,7 @@ function MacLib:Window(Settings)
 					local sliderValueUIStroke = Instance.new("UIStroke")
 					sliderValueUIStroke.Name = "SliderValueUIStroke"
 					sliderValueUIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-					sliderValueUIStroke.Color = Theme.Outline
+					setThemed(sliderValueUIStroke, "Color", "Outline")
 					sliderValueUIStroke.Transparency = 0.9
 					sliderValueUIStroke.Parent = sliderValue
 
@@ -1919,7 +1980,7 @@ function MacLib:Window(Settings)
 					local sliderBar = Instance.new("ImageLabel")
 					sliderBar.Name = "SliderBar"
 					sliderBar.Image = assets.sliderbar
-					sliderBar.ImageColor3 = Theme.Button
+					setThemed(sliderBar, "ImageColor3", "Button")
 					sliderBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 					sliderBar.BackgroundTransparency = 1
 					sliderBar.BorderColor3 = Color3.fromRGB(0, 0, 0)
@@ -2096,7 +2157,7 @@ function MacLib:Window(Settings)
 					end
 
 					if Flag then
-						MacLib.Options[Flag] = SliderFunctions
+						WMacLib.Options[Flag] = SliderFunctions
 					end
 					return SliderFunctions
 				end
@@ -2118,7 +2179,7 @@ function MacLib:Window(Settings)
 					inputName.FontFace = Font.new(assets.interFont)
 					inputName.Text = InputFunctions.Settings.Name
 					inputName.RichText = true
-					inputName.TextColor3 = Theme.Text
+					setThemed(inputName, "TextColor3", "Text")
 					inputName.TextSize = 13
 					inputName.TextTransparency = 0.5
 					inputName.TextTruncate = Enum.TextTruncate.AtEnd
@@ -2137,13 +2198,13 @@ function MacLib:Window(Settings)
 					inputBox.Name = "InputBox"
 					inputBox.FontFace = Font.new(assets.interFont)
 					inputBox.Text = "Hello world!"
-					inputBox.TextColor3 = Theme.Text
+					setThemed(inputBox, "TextColor3", "Text")
 					inputBox.TextSize = 12
 					inputBox.TextTransparency = 0.1
 					inputBox.AnchorPoint = Vector2.new(1, 0.5)
 					inputBox.AutomaticSize = Enum.AutomaticSize.X
-					inputBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-					inputBox.BackgroundTransparency = 0.95
+					setThemed(inputBox, "BackgroundColor3", "Surface")
+					inputBox.BackgroundTransparency = 0.92
 					inputBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
 					inputBox.BorderSizePixel = 0
 					inputBox.ClipsDescendants = true
@@ -2160,7 +2221,7 @@ function MacLib:Window(Settings)
 					local inputBoxUIStroke = Instance.new("UIStroke")
 					inputBoxUIStroke.Name = "InputBoxUIStroke"
 					inputBoxUIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-					inputBoxUIStroke.Color = Theme.Outline
+					setThemed(inputBoxUIStroke, "Color", "Outline")
 					inputBoxUIStroke.Transparency = 0.9
 					inputBoxUIStroke.Parent = inputBox
 
@@ -2272,7 +2333,7 @@ function MacLib:Window(Settings)
 					end
 
 					if Flag then
-						MacLib.Options[Flag] = InputFunctions
+						WMacLib.Options[Flag] = InputFunctions
 					end
 					return InputFunctions
 				end
@@ -2294,7 +2355,7 @@ function MacLib:Window(Settings)
 					keybindName.FontFace = Font.new(assets.interFont)
 					keybindName.Text = KeybindFunctions.Settings.Name
 					keybindName.RichText = true
-					keybindName.TextColor3 = Theme.Text
+					setThemed(keybindName, "TextColor3", "Text")
 					keybindName.TextSize = 13
 					keybindName.TextTransparency = 0.5
 					keybindName.TextTruncate = Enum.TextTruncate.AtEnd
@@ -2315,13 +2376,13 @@ function MacLib:Window(Settings)
 					binderBox.FontFace = Font.new(assets.interFont)
 					binderBox.PlaceholderText = "..."
 					binderBox.Text = ""
-					binderBox.TextColor3 = Theme.Text
+					setThemed(binderBox, "TextColor3", "Text")
 					binderBox.TextSize = 12
 					binderBox.TextTransparency = 0.1
 					binderBox.AnchorPoint = Vector2.new(1, 0.5)
 					binderBox.AutomaticSize = Enum.AutomaticSize.X
-					binderBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-					binderBox.BackgroundTransparency = 0.95
+					setThemed(binderBox, "BackgroundColor3", "Surface")
+					binderBox.BackgroundTransparency = 0.92
 					binderBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
 					binderBox.BorderSizePixel = 0
 					binderBox.ClipsDescendants = true
@@ -2337,7 +2398,7 @@ function MacLib:Window(Settings)
 					local binderBoxUIStroke = Instance.new("UIStroke")
 					binderBoxUIStroke.Name = "BinderBoxUIStroke"
 					binderBoxUIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-					binderBoxUIStroke.Color = Theme.Outline
+					setThemed(binderBoxUIStroke, "Color", "Outline")
 					binderBoxUIStroke.Transparency = 0.9
 					binderBoxUIStroke.Parent = binderBox
 
@@ -2451,7 +2512,7 @@ function MacLib:Window(Settings)
 					end
 
 					if Flag then
-						MacLib.Options[Flag] = KeybindFunctions
+						WMacLib.Options[Flag] = KeybindFunctions
 					end
 
 					return KeybindFunctions
@@ -2496,7 +2557,7 @@ function MacLib:Window(Settings)
 					dropdownName.FontFace = Font.new(assets.interFont)
 					dropdownName.Text = Settings.Default and (DropdownFunctions.Settings.Name .. " • " .. table.concat(Selected, ", ")) or (DropdownFunctions.Settings.Name .. "...")
 					dropdownName.RichText = true
-					dropdownName.TextColor3 = Theme.Text
+					setThemed(dropdownName, "TextColor3", "Text")
 					dropdownName.TextSize = 13
 					dropdownName.TextTransparency = 0.5
 					dropdownName.TextTruncate = Enum.TextTruncate.SplitWord
@@ -2512,7 +2573,7 @@ function MacLib:Window(Settings)
 					local dropdownUIStroke = Instance.new("UIStroke")
 					dropdownUIStroke.Name = "DropdownUIStroke"
 					dropdownUIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-					dropdownUIStroke.Color = Theme.Outline
+					setThemed(dropdownUIStroke, "Color", "Outline")
 					dropdownUIStroke.Transparency = 0.95
 					dropdownUIStroke.Parent = dropdown
 
@@ -2575,7 +2636,7 @@ function MacLib:Window(Settings)
 					local searchIcon = Instance.new("ImageLabel")
 					searchIcon.Name = "SearchIcon"
 					searchIcon.Image = assets.searchIcon
-					searchIcon.ImageColor3 = Theme.Icon
+					setThemed(searchIcon, "ImageColor3", "Icon")
 					searchIcon.AnchorPoint = Vector2.new(0, 0.5)
 					searchIcon.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 					searchIcon.BackgroundTransparency = 1
@@ -2598,10 +2659,10 @@ function MacLib:Window(Settings)
 						Enum.FontWeight.Medium,
 						Enum.FontStyle.Normal
 					)
-					searchBox.PlaceholderColor3 = Theme.Placeholder
+					setThemed(searchBox, "PlaceholderColor3", "Placeholder")
 					searchBox.PlaceholderText = "Search..."
 					searchBox.Text = ""
-					searchBox.TextColor3 = Color3.fromRGB(200, 200, 200)
+					setThemed(searchBox, "TextColor3", "Text")
 					searchBox.TextSize = 14
 					searchBox.TextXAlignment = Enum.TextXAlignment.Left
 					searchBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -2786,7 +2847,7 @@ function MacLib:Window(Settings)
 						optionName.FontFace = Font.new(assets.interFont)
 						optionName.Text = v
 						optionName.RichText = true
-						optionName.TextColor3 = Theme.Text
+						setThemed(optionName, "TextColor3", "Text")
 						optionName.TextSize = 13
 						optionName.TextTransparency = 0.5
 						optionName.TextTruncate = Enum.TextTruncate.AtEnd
@@ -2813,7 +2874,7 @@ function MacLib:Window(Settings)
 						checkmark.Name = "Checkmark"
 						checkmark.FontFace = Font.new(assets.interFont)
 						checkmark.Text = "✓"
-						checkmark.TextColor3 = Theme.Text
+						setThemed(checkmark, "TextColor3", "Text")
 						checkmark.TextSize = 13
 						checkmark.TextTransparency = 1
 						checkmark.TextXAlignment = Enum.TextXAlignment.Left
@@ -3023,7 +3084,7 @@ function MacLib:Window(Settings)
 					end
 
 					if Flag then
-						MacLib.Options[Flag] = DropdownFunctions
+						WMacLib.Options[Flag] = DropdownFunctions
 					end
 
 					return DropdownFunctions
@@ -3050,7 +3111,7 @@ function MacLib:Window(Settings)
 					colorpickerName.Name = "KeybindName"
 					colorpickerName.FontFace = Font.new(assets.interFont)
 					colorpickerName.Text = Settings.Name
-					colorpickerName.TextColor3 = Theme.Text
+					setThemed(colorpickerName, "TextColor3", "Text")
 					colorpickerName.TextSize = 13
 					colorpickerName.TextTransparency = 0.5
 					colorpickerName.RichText = true
@@ -3133,7 +3194,7 @@ function MacLib:Window(Settings)
 					prompt.Name = "Prompt"
 					prompt.AnchorPoint = Vector2.new(0.5, 0.5)
 					prompt.AutomaticSize = Enum.AutomaticSize.Y
-					prompt.BackgroundColor3 = Theme.Background
+					setThemed(prompt, "BackgroundColor3", "Background")
 					prompt.BorderColor3 = Color3.fromRGB(0, 0, 0)
 					prompt.BorderSizePixel = 0
 					prompt.Position = UDim2.fromScale(0.5, 0.5)
@@ -3147,7 +3208,7 @@ function MacLib:Window(Settings)
 					local globalSettingsUIStroke = Instance.new("UIStroke")
 					globalSettingsUIStroke.Name = "GlobalSettingsUIStroke"
 					globalSettingsUIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-					globalSettingsUIStroke.Color = Theme.Outline
+					setThemed(globalSettingsUIStroke, "Color", "Outline")
 					globalSettingsUIStroke.Transparency = 0.9
 					globalSettingsUIStroke.Parent = prompt
 
@@ -3225,7 +3286,7 @@ function MacLib:Window(Settings)
 					local uIStroke1 = Instance.new("UIStroke")
 					uIStroke1.Name = "UIStroke"
 					uIStroke1.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-					uIStroke1.Color = Color3.fromRGB(255, 255, 255)
+					setThemed(uIStroke1, "Color", "Outline")
 					uIStroke1.Transparency = 0.9
 
 					local uIGradient1 = Instance.new("UIGradient")
@@ -3321,7 +3382,7 @@ function MacLib:Window(Settings)
 					inputName.Name = "InputName"
 					inputName.FontFace = Font.new(assets.interFont)
 					inputName.Text = "Red"
-					inputName.TextColor3 = Theme.Text
+					setThemed(inputName, "TextColor3", "Text")
 					inputName.TextSize = 13
 					inputName.TextTransparency = 0.5
 					inputName.TextTruncate = Enum.TextTruncate.AtEnd
@@ -3351,13 +3412,13 @@ function MacLib:Window(Settings)
 					inputBox.CursorPosition = -1
 					inputBox.FontFace = Font.new(assets.interFont)
 					inputBox.Text = "255"
-					inputBox.TextColor3 = Theme.Text
+					setThemed(inputBox, "TextColor3", "Text")
 					inputBox.TextSize = 12
 					inputBox.TextTransparency = 0.1
 					inputBox.TextXAlignment = Enum.TextXAlignment.Left
 					inputBox.AnchorPoint = Vector2.new(1, 0.5)
-					inputBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-					inputBox.BackgroundTransparency = 0.95
+					setThemed(inputBox, "BackgroundColor3", "Surface")
+					inputBox.BackgroundTransparency = 0.92
 					inputBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
 					inputBox.BorderSizePixel = 0
 					inputBox.ClipsDescendants = true
@@ -3373,7 +3434,7 @@ function MacLib:Window(Settings)
 					local inputBoxUIStroke = Instance.new("UIStroke")
 					inputBoxUIStroke.Name = "InputBoxUIStroke"
 					inputBoxUIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-					inputBoxUIStroke.Color = Theme.Outline
+					setThemed(inputBoxUIStroke, "Color", "Outline")
 					inputBoxUIStroke.Transparency = 0.9
 					inputBoxUIStroke.Parent = inputBox
 
@@ -3405,7 +3466,7 @@ function MacLib:Window(Settings)
 					inputName1.Name = "InputName"
 					inputName1.FontFace = Font.new(assets.interFont)
 					inputName1.Text = "Green"
-					inputName1.TextColor3 = Theme.Text
+					setThemed(inputName1, "TextColor3", "Text")
 					inputName1.TextSize = 13
 					inputName1.TextTransparency = 0.5
 					inputName1.TextTruncate = Enum.TextTruncate.AtEnd
@@ -3434,7 +3495,7 @@ function MacLib:Window(Settings)
 					inputBox1.ClearTextOnFocus = false
 					inputBox1.FontFace = Font.new(assets.interFont)
 					inputBox1.Text = "255"
-					inputBox1.TextColor3 = Theme.Text
+					setThemed(inputBox1, "TextColor3", "Text")
 					inputBox1.TextSize = 12
 					inputBox1.TextTransparency = 0.1
 					inputBox1.TextXAlignment = Enum.TextXAlignment.Left
@@ -3456,7 +3517,7 @@ function MacLib:Window(Settings)
 					local inputBoxUIStroke1 = Instance.new("UIStroke")
 					inputBoxUIStroke1.Name = "InputBoxUIStroke"
 					inputBoxUIStroke1.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-					inputBoxUIStroke1.Color = Color3.fromRGB(255, 255, 255)
+					setThemed(inputBoxUIStroke1, "Color", "Outline")
 					inputBoxUIStroke1.Transparency = 0.9
 					inputBoxUIStroke1.Parent = inputBox1
 
@@ -3488,7 +3549,7 @@ function MacLib:Window(Settings)
 					inputName2.Name = "InputName"
 					inputName2.FontFace = Font.new(assets.interFont)
 					inputName2.Text = "Blue"
-					inputName2.TextColor3 = Theme.Text
+					setThemed(inputName2, "TextColor3", "Text")
 					inputName2.TextSize = 13
 					inputName2.TextTransparency = 0.5
 					inputName2.TextTruncate = Enum.TextTruncate.AtEnd
@@ -3517,7 +3578,7 @@ function MacLib:Window(Settings)
 					inputBox2.ClearTextOnFocus = false
 					inputBox2.FontFace = Font.new(assets.interFont)
 					inputBox2.Text = "255"
-					inputBox2.TextColor3 = Theme.Text
+					setThemed(inputBox2, "TextColor3", "Text")
 					inputBox2.TextSize = 12
 					inputBox2.TextTransparency = 0.1
 					inputBox2.TextXAlignment = Enum.TextXAlignment.Left
@@ -3539,7 +3600,7 @@ function MacLib:Window(Settings)
 					local inputBoxUIStroke2 = Instance.new("UIStroke")
 					inputBoxUIStroke2.Name = "InputBoxUIStroke"
 					inputBoxUIStroke2.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-					inputBoxUIStroke2.Color = Color3.fromRGB(255, 255, 255)
+					setThemed(inputBoxUIStroke2, "Color", "Outline")
 					inputBoxUIStroke2.Transparency = 0.9
 					inputBoxUIStroke2.Parent = inputBox2
 
@@ -3572,7 +3633,7 @@ function MacLib:Window(Settings)
 					inputName3.Name = "InputName"
 					inputName3.FontFace = Font.new(assets.interFont)
 					inputName3.Text = "Alpha"
-					inputName3.TextColor3 = Theme.Text
+					setThemed(inputName3, "TextColor3", "Text")
 					inputName3.TextSize = 13
 					inputName3.TextTransparency = 0.5
 					inputName3.TextTruncate = Enum.TextTruncate.AtEnd
@@ -3601,7 +3662,7 @@ function MacLib:Window(Settings)
 					inputBox3.ClearTextOnFocus = false
 					inputBox3.FontFace = Font.new(assets.interFont)
 					inputBox3.Text = "0"
-					inputBox3.TextColor3 = Theme.Text
+					setThemed(inputBox3, "TextColor3", "Text")
 					inputBox3.TextSize = 12
 					inputBox3.TextTransparency = 0.1
 					inputBox3.TextXAlignment = Enum.TextXAlignment.Left
@@ -3623,7 +3684,7 @@ function MacLib:Window(Settings)
 					local inputBoxUIStroke3 = Instance.new("UIStroke")
 					inputBoxUIStroke3.Name = "InputBoxUIStroke"
 					inputBoxUIStroke3.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-					inputBoxUIStroke3.Color = Color3.fromRGB(255, 255, 255)
+					setThemed(inputBoxUIStroke3, "Color", "Outline")
 					inputBoxUIStroke3.Transparency = 0.9
 					inputBoxUIStroke3.Parent = inputBox3
 
@@ -3654,7 +3715,7 @@ function MacLib:Window(Settings)
 					inputName4.Name = "InputName"
 					inputName4.FontFace = Font.new(assets.interFont)
 					inputName4.Text = "Hex"
-					inputName4.TextColor3 = Theme.Text
+					setThemed(inputName4, "TextColor3", "Text")
 					inputName4.TextSize = 13
 					inputName4.TextTransparency = 0.5
 					inputName4.TextTruncate = Enum.TextTruncate.AtEnd
@@ -3684,7 +3745,7 @@ function MacLib:Window(Settings)
 					inputBox4.CursorPosition = -1
 					inputBox4.FontFace = Font.new(assets.interFont)
 					inputBox4.Text = "255"
-					inputBox4.TextColor3 = Theme.Text
+					setThemed(inputBox4, "TextColor3", "Text")
 					inputBox4.TextSize = 12
 					inputBox4.TextTransparency = 0.1
 					inputBox4.TextXAlignment = Enum.TextXAlignment.Left
@@ -3706,7 +3767,7 @@ function MacLib:Window(Settings)
 					local inputBoxUIStroke4 = Instance.new("UIStroke")
 					inputBoxUIStroke4.Name = "InputBoxUIStroke"
 					inputBoxUIStroke4.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-					inputBoxUIStroke4.Color = Color3.fromRGB(255, 255, 255)
+					setThemed(inputBoxUIStroke4, "Color", "Outline")
 					inputBoxUIStroke4.Transparency = 0.9
 					inputBoxUIStroke4.Parent = inputBox4
 
@@ -3841,13 +3902,13 @@ function MacLib:Window(Settings)
 						Enum.FontStyle.Normal
 					)
 					confirm.Text = "Confirm"
-					confirm.TextColor3 = Theme.Text
+					setThemed(confirm, "TextColor3", "Text")
 					confirm.TextSize = 15
 					confirm.TextTransparency = 0.5
 					confirm.TextTruncate = Enum.TextTruncate.AtEnd
 					confirm.AutoButtonColor = false
 					confirm.AutomaticSize = Enum.AutomaticSize.Y
-					confirm.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+					setThemed(confirm, "BackgroundColor3", "Accent")
 					confirm.BorderColor3 = Color3.fromRGB(0, 0, 0)
 					confirm.BorderSizePixel = 0
 					confirm.Size = UDim2.fromScale(1, 0)
@@ -3875,13 +3936,13 @@ function MacLib:Window(Settings)
 						Enum.FontStyle.Normal
 					)
 					cancel.Text = "Cancel"
-					cancel.TextColor3 = Theme.Text
+					setThemed(cancel, "TextColor3", "Text")
 					cancel.TextSize = 15
 					cancel.TextTransparency = 0.5
 					cancel.TextTruncate = Enum.TextTruncate.AtEnd
 					cancel.AutoButtonColor = false
 					cancel.AutomaticSize = Enum.AutomaticSize.Y
-					cancel.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+					setThemed(cancel, "BackgroundColor3", "Accent")
 					cancel.BorderColor3 = Color3.fromRGB(0, 0, 0)
 					cancel.BorderSizePixel = 0
 					cancel.Size = UDim2.fromScale(1, 0)
@@ -3934,7 +3995,7 @@ function MacLib:Window(Settings)
 					)
 					paragraphHeader.RichText = true
 					paragraphHeader.Text = ColorpickerFunctions.Settings.Name
-					paragraphHeader.TextColor3 = Theme.Text
+					setThemed(paragraphHeader, "TextColor3", "Text")
 					paragraphHeader.TextSize = 18
 					paragraphHeader.TextTransparency = 0.4
 					paragraphHeader.TextWrapped = true
@@ -4318,7 +4379,7 @@ function MacLib:Window(Settings)
 					end
 
 					if Flag then
-						MacLib.Options[Flag] = ColorpickerFunctions
+						WMacLib.Options[Flag] = ColorpickerFunctions
 					end
 					return ColorpickerFunctions
 				end
@@ -4351,7 +4412,7 @@ function MacLib:Window(Settings)
 					)
 					headerText.RichText = true
 					headerText.Text = HeaderFunctions.Settings.Text or HeaderFunctions.Settings.Name
-					headerText.TextColor3 = Theme.Text
+					setThemed(headerText, "TextColor3", "Text")
 					headerText.TextSize = 16
 					headerText.TextTransparency = 0.3
 					headerText.TextWrapped = true
@@ -4372,7 +4433,7 @@ function MacLib:Window(Settings)
 					end
 
 					if Flag then
-						MacLib.Options[Flag] = HeaderFunctions
+						WMacLib.Options[Flag] = HeaderFunctions
 					end
 					return HeaderFunctions
 				end
@@ -4395,7 +4456,7 @@ function MacLib:Window(Settings)
 					labelText.FontFace = Font.new(assets.interFont)
 					labelText.RichText = true
 					labelText.Text = LabelFunctions.Settings.Text or LabelFunctions.Settings.Name -- Settings.Name Deprecated use Settings.Text
-					labelText.TextColor3 = Theme.Text
+					setThemed(labelText, "TextColor3", "Text")
 					labelText.TextSize = 13
 					labelText.TextTransparency = 0.5
 					labelText.TextWrapped = true
@@ -4416,7 +4477,7 @@ function MacLib:Window(Settings)
 					end
 
 					if Flag then
-						MacLib.Options[Flag] = LabelFunctions
+						WMacLib.Options[Flag] = LabelFunctions
 					end
 					return LabelFunctions
 				end
@@ -4439,7 +4500,7 @@ function MacLib:Window(Settings)
 					subLabelText.FontFace = Font.new(assets.interFont)
 					subLabelText.RichText = true
 					subLabelText.Text = SubLabelFunctions.Settings.Text or SubLabelFunctions.Settings.Name -- Settings.Name Deprecated use Settings.Text
-					subLabelText.TextColor3 = Theme.Text
+					setThemed(subLabelText, "TextColor3", "Text")
 					subLabelText.TextSize = 12
 					subLabelText.TextTransparency = 0.7
 					subLabelText.TextWrapped = true
@@ -4460,7 +4521,7 @@ function MacLib:Window(Settings)
 					end
 
 					if Flag then
-						MacLib.Options[Flag] = SubLabelFunctions
+						WMacLib.Options[Flag] = SubLabelFunctions
 					end
 					return SubLabelFunctions
 				end
@@ -4487,7 +4548,7 @@ function MacLib:Window(Settings)
 					)
 					paragraphHeader.RichText = true
 					paragraphHeader.Text = ParagraphFunctions.Settings.Header
-					paragraphHeader.TextColor3 = Theme.Text
+					setThemed(paragraphHeader, "TextColor3", "Text")
 					paragraphHeader.TextSize = 15
 					paragraphHeader.TextTransparency = 0.4
 					paragraphHeader.TextWrapped = true
@@ -4511,7 +4572,7 @@ function MacLib:Window(Settings)
 					paragraphBody.FontFace = Font.new(assets.interFont)
 					paragraphBody.RichText = true
 					paragraphBody.Text = ParagraphFunctions.Settings.Body
-					paragraphBody.TextColor3 = Theme.Text
+					setThemed(paragraphBody, "TextColor3", "Text")
 					paragraphBody.TextSize = 13
 					paragraphBody.TextTransparency = 0.5
 					paragraphBody.TextWrapped = true
@@ -4536,7 +4597,7 @@ function MacLib:Window(Settings)
 					end
 
 					if Flag then
-						MacLib.Options[Flag] = ParagraphFunctions
+						WMacLib.Options[Flag] = ParagraphFunctions
 					end
 					return ParagraphFunctions
 				end
@@ -4678,7 +4739,7 @@ function MacLib:Window(Settings)
 					Name = "Select Config",
 					Multi = false,
 					Required = false,
-					Options = MacLib:RefreshConfigList(),
+					Options = WMacLib:RefreshConfigList(),
 					Callback = function(Value)
 						selectedConfig = Value
 					end,
@@ -4695,7 +4756,7 @@ function MacLib:Window(Settings)
 							return
 						end
 
-						local success, returned = MacLib:SaveConfig(inputPath)
+						local success, returned = WMacLib:SaveConfig(inputPath)
 						if not success then
 							WindowFunctions:Notify({
 								Title = "Interface",
@@ -4709,14 +4770,14 @@ function MacLib:Window(Settings)
 						})
 
 						configSelection:ClearOptions()
-						configSelection:InsertOptions(MacLib:RefreshConfigList())
+						configSelection:InsertOptions(WMacLib:RefreshConfigList())
 					end,
 				})
 
 				configSection:Button({
 					Name = "Load Config",
 					Callback = function()
-						local success, returned = MacLib:LoadConfig(configSelection.Value)
+						local success, returned = WMacLib:LoadConfig(configSelection.Value)
 						if not success then
 							WindowFunctions:Notify({
 								Title = "Interface",
@@ -4735,7 +4796,7 @@ function MacLib:Window(Settings)
 				configSection:Button({
 					Name = "Overwrite Config",
 					Callback = function()
-						local success, returned = MacLib:SaveConfig(configSelection.Value)
+						local success, returned = WMacLib:SaveConfig(configSelection.Value)
 						if not success then
 							WindowFunctions:Notify({
 								Title = "Interface",
@@ -4755,7 +4816,7 @@ function MacLib:Window(Settings)
 					Name = "Refresh Config List",
 					Callback = function()
 						configSelection:ClearOptions()
-						configSelection:InsertOptions(MacLib:RefreshConfigList())
+						configSelection:InsertOptions(WMacLib:RefreshConfigList())
 					end,
 				})
 
@@ -4765,7 +4826,7 @@ function MacLib:Window(Settings)
 					Name = "Set as autoload",
 					Callback = function()
 						local name = configSelection.Value
-						writefile(MacLib.Folder .. "/settings/autoload.txt", name)
+						writefile(WMacLib.Folder .. "/settings/autoload.txt", name)
 						autoloadLabel:UpdateName("Autoload config: " .. name)
 						WindowFunctions:Notify({
 							Title = "Interface",
@@ -4776,8 +4837,8 @@ function MacLib:Window(Settings)
 
 				autoloadLabel = configSection:Label({Text = "Autoload config: None"})
 
-				if isfile(MacLib.Folder .. "/settings/autoload.txt") then
-					local name = readfile(MacLib.Folder .. "/settings/autoload.txt")
+				if isfile(WMacLib.Folder .. "/settings/autoload.txt") then
+					local name = readfile(WMacLib.Folder .. "/settings/autoload.txt")
 					autoloadLabel:UpdateName("Autoload config: " .. name)
 				end
 			end
@@ -4802,7 +4863,7 @@ function MacLib:Window(Settings)
 		notification.Name = "Notification"
 		notification.AnchorPoint = Vector2.new(0.5, 0.5)
 		notification.AutomaticSize = Enum.AutomaticSize.Y
-		notification.BackgroundColor3 = Theme.Background
+		setThemed(notification, "BackgroundColor3", "Background")
 		notification.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		notification.BorderSizePixel = 0
 		notification.Position = UDim2.fromScale(0.5, 0.5)
@@ -4813,7 +4874,7 @@ function MacLib:Window(Settings)
 		local notificationUIStroke = Instance.new("UIStroke")
 		notificationUIStroke.Name = "NotificationUIStroke"
 		notificationUIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-		notificationUIStroke.Color = Theme.Outline
+		setThemed(notificationUIStroke, "Color", "Outline")
 		notificationUIStroke.Transparency = 0.9
 		notificationUIStroke.Parent = notification
 
@@ -4845,7 +4906,7 @@ function MacLib:Window(Settings)
 		)
 		notificationTitle.RichText = true
 		notificationTitle.Text = Settings.Title
-		notificationTitle.TextColor3 = Theme.Text
+		setThemed(notificationTitle, "TextColor3", "Text")
 		notificationTitle.TextSize = 13
 		notificationTitle.TextTransparency = 0.2
 		notificationTitle.TextTruncate = Enum.TextTruncate.SplitWord
@@ -4873,7 +4934,7 @@ function MacLib:Window(Settings)
 			Enum.FontStyle.Normal
 		)
 		notificationDescription.Text = Settings.Description
-		notificationDescription.TextColor3 = Theme.Text
+		setThemed(notificationDescription, "TextColor3", "Text")
 		notificationDescription.TextSize = 11
 		notificationDescription.TextTransparency = 0.5
 		notificationDescription.TextWrapped = true
@@ -4918,7 +4979,7 @@ function MacLib:Window(Settings)
 		interactable.Name = "Interactable"
 		interactable.FontFace = Font.new(assets.interFont)
 		interactable.Text = "✓"
-		interactable.TextColor3 = Theme.Text
+		setThemed(interactable, "TextColor3", "Text")
 		interactable.TextSize = 17
 		interactable.TextTransparency = 0.2
 		interactable.AnchorPoint = Vector2.new(1, 0.5)
@@ -5037,7 +5098,7 @@ function MacLib:Window(Settings)
 		prompt.Name = "Prompt"
 		prompt.AnchorPoint = Vector2.new(0.5, 0.5)
 		prompt.AutomaticSize = Enum.AutomaticSize.Y
-		prompt.BackgroundColor3 = Theme.Background
+		setThemed(prompt, "BackgroundColor3", "Background")
 		prompt.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		prompt.BorderSizePixel = 0
 		prompt.Position = UDim2.fromScale(0.5, 0.5)
@@ -5051,7 +5112,7 @@ function MacLib:Window(Settings)
 		local globalSettingsUIStroke = Instance.new("UIStroke")
 		globalSettingsUIStroke.Name = "GlobalSettingsUIStroke"
 		globalSettingsUIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-		globalSettingsUIStroke.Color = Theme.Outline
+		setThemed(globalSettingsUIStroke, "Color", "Outline")
 		globalSettingsUIStroke.Transparency = 0.9
 		globalSettingsUIStroke.Parent = prompt
 
@@ -5086,7 +5147,7 @@ function MacLib:Window(Settings)
 		)
 		paragraphHeader.RichText = true
 		paragraphHeader.Text = Settings.Title
-		paragraphHeader.TextColor3 = Theme.Text
+		setThemed(paragraphHeader, "TextColor3", "Text")
 		paragraphHeader.TextSize = 18
 		paragraphHeader.TextTransparency = 0.4
 		paragraphHeader.TextWrapped = true
@@ -5109,7 +5170,7 @@ function MacLib:Window(Settings)
 		paragraphBody.FontFace = Font.new(assets.interFont)
 		paragraphBody.RichText = true
 		paragraphBody.Text = Settings.Description
-		paragraphBody.TextColor3 = Theme.Text
+		setThemed(paragraphBody, "TextColor3", "Text")
 		paragraphBody.TextSize = 14
 		paragraphBody.TextTransparency = 0.5
 		paragraphBody.TextWrapped = true
@@ -5183,13 +5244,13 @@ function MacLib:Window(Settings)
 			button.Name = "Button"
 			button.FontFace = Font.new(assets.interFont)
 			button.Text = v.Name
-			button.TextColor3 = Theme.Text
+			setThemed(button, "TextColor3", "Text")
 			button.TextSize = 15
 			button.TextTransparency = 0.5
 			button.TextTruncate = Enum.TextTruncate.AtEnd
 			button.AutoButtonColor = false
 			button.AutomaticSize = Enum.AutomaticSize.Y
-			button.BackgroundColor3 = Theme.Accent
+			setThemed(button, "BackgroundColor3", "Accent")
 			button.BorderColor3 = Color3.fromRGB(0, 0, 0)
 			button.BorderSizePixel = 0
 			button.Size = UDim2.fromScale(1, 0)
@@ -5379,6 +5440,10 @@ function MacLib:Window(Settings)
 
 	function WindowFunctions:SetSize(Size)
 		base.Size = Size
+		task.defer(function()
+			content.Size = UDim2.new(0, base.AbsoluteSize.X - sidebar.AbsoluteSize.X, 1, 0)
+			maxSidebarWidth = base.AbsoluteSize.X - minSidebarWidth
+		end)
 	end
 	function WindowFunctions:GetSize(Size)
 		return base.Size
@@ -5401,8 +5466,8 @@ function MacLib:Window(Settings)
 				}
 			end,
 			Load = function(Flag, data)
-				if MacLib.Options[Flag] and data.state then
-					MacLib.Options[Flag]:UpdateState(data.state)
+				if WMacLib.Options[Flag] and data.state then
+					WMacLib.Options[Flag]:UpdateState(data.state)
 				end
 			end
 		},
@@ -5415,8 +5480,8 @@ function MacLib:Window(Settings)
 				}
 			end,
 			Load = function(Flag, data)
-				if MacLib.Options[Flag] and data.value then
-					MacLib.Options[Flag]:UpdateValue(data.value)
+				if WMacLib.Options[Flag] and data.value then
+					WMacLib.Options[Flag]:UpdateValue(data.value)
 				end
 			end
 		},
@@ -5429,8 +5494,8 @@ function MacLib:Window(Settings)
 				}
 			end,
 			Load = function(Flag, data)
-				if MacLib.Options[Flag] and data.text and type(data.text) == "string" then
-					MacLib.Options[Flag]:UpdateText(data.text)
+				if WMacLib.Options[Flag] and data.text and type(data.text) == "string" then
+					WMacLib.Options[Flag]:UpdateText(data.text)
 				end
 			end
 		},
@@ -5443,8 +5508,8 @@ function MacLib:Window(Settings)
 				}
 			end,
 			Load = function(Flag, data)
-				if MacLib.Options[Flag] and data.bind then
-					MacLib.Options[Flag]:Bind(Enum.KeyCode[data.bind])
+				if WMacLib.Options[Flag] and data.bind then
+					WMacLib.Options[Flag]:Bind(Enum.KeyCode[data.bind])
 				end
 			end
 		},
@@ -5457,8 +5522,8 @@ function MacLib:Window(Settings)
 				}
 			end,
 			Load = function(Flag, data)
-				if MacLib.Options[Flag] and data.value then
-					MacLib.Options[Flag]:UpdateSelection(data.value)
+				if WMacLib.Options[Flag] and data.value then
+					WMacLib.Options[Flag]:UpdateSelection(data.value)
 				end
 			end
 		},
@@ -5483,10 +5548,10 @@ function MacLib:Window(Settings)
 					return Color3.new(r, g, b)
 				end
 
-				if MacLib.Options[Flag] and data.color then
-					MacLib.Options[Flag]:SetColor(HexToColor3(data.color)) 
+				if WMacLib.Options[Flag] and data.color then
+					WMacLib.Options[Flag]:SetColor(HexToColor3(data.color)) 
 					if data.alpha then
-						MacLib.Options[Flag]:SetAlpha(data.alpha)
+						WMacLib.Options[Flag]:SetAlpha(data.alpha)
 					end
 				end
 			end
@@ -5497,8 +5562,8 @@ function MacLib:Window(Settings)
 		if isStudio or not (isfolder and makefolder) then return "Config system unavailable." end
 
 		local paths = {
-			MacLib.Folder,
-			MacLib.Folder .. "/settings"
+			WMacLib.Folder,
+			WMacLib.Folder .. "/settings"
 		}
 
 		for i = 1, #paths do
@@ -5509,13 +5574,13 @@ function MacLib:Window(Settings)
 		end
 	end
 
-	function MacLib:LoadAutoLoadConfig()
+	function WMacLib:LoadAutoLoadConfig()
 		if isStudio or not (isfile and readfile) then return "Config system unavailable." end
 
-		if isfile(MacLib.Folder .. "/settings/autoload.txt") then
-			local name = readfile(MacLib.Folder .. "/settings/autoload.txt")
+		if isfile(WMacLib.Folder .. "/settings/autoload.txt") then
+			local name = readfile(WMacLib.Folder .. "/settings/autoload.txt")
 
-			local suc, err = MacLib:LoadConfig(name)
+			local suc, err = WMacLib:LoadConfig(name)
 			if not suc then
 				WindowFunctions:Notify({
 					Title = "Interface",
@@ -5530,27 +5595,27 @@ function MacLib:Window(Settings)
 		end
 	end
 
-	function MacLib:SetFolder(Folder)
+	function WMacLib:SetFolder(Folder)
 		if isStudio then return "Config system unavailable." end
 
-		MacLib.Folder = Folder;
+		WMacLib.Folder = Folder;
 		BuildFolderTree()
 	end
 
-	function MacLib:SaveConfig(Path)
+	function WMacLib:SaveConfig(Path)
 		if isStudio or not writefile then return "Config system unavailable." end
 
 		if (not Path) then
 			return false, "Please select a config file."
 		end
 
-		local fullPath = MacLib.Folder .. "/settings/" .. Path .. ".json"
+		local fullPath = WMacLib.Folder .. "/settings/" .. Path .. ".json"
 
 		local data = {
 			objects = {}
 		}
 
-		for flag, option in next, MacLib.Options do
+		for flag, option in next, WMacLib.Options do
 			if not ClassParser[option.Class] then continue end
 			if option.IgnoreConfig then continue end
 
@@ -5566,14 +5631,14 @@ function MacLib:Window(Settings)
 		return true
 	end
 
-	function MacLib:LoadConfig(Path)
+	function WMacLib:LoadConfig(Path)
 		if isStudio or not (isfile and readfile) then return "Config system unavailable." end
 
 		if (not Path) then
 			return false, "Please select a config file."
 		end
 
-		local file = MacLib.Folder .. "/settings/" .. Path .. ".json"
+		local file = WMacLib.Folder .. "/settings/" .. Path .. ".json"
 		if not isfile(file) then return false, "Invalid file" end
 
 		local success, decoded = pcall(HttpService.JSONDecode, HttpService, readfile(file))
@@ -5590,10 +5655,10 @@ function MacLib:Window(Settings)
 		return true
 	end
 
-	function MacLib:RefreshConfigList()
+	function WMacLib:RefreshConfigList()
 		if isStudio or not (isfolder and listfiles) then return "Config system unavailable." end
 
-		local list = (isfolder(MacLib.Folder) and isfolder(MacLib.Folder .. "/settings")) and listfiles(MacLib.Folder .. "/settings") or {}
+		local list = (isfolder(WMacLib.Folder) and isfolder(WMacLib.Folder .. "/settings")) and listfiles(WMacLib.Folder .. "/settings") or {}
 
 		local out = {}
 		for i = 1, #list do
@@ -5631,11 +5696,23 @@ function MacLib:Window(Settings)
 	macLib.Enabled = true
 	windowState = true
 
+	table.insert(WMacLib.themeCallbacks, function(newName)
+		local newTheme = WMacLib.Themes[newName]
+		if not newTheme then return end
+		for k in pairs(Theme) do
+			Theme[k] = newTheme[k] or Theme[k]
+		end
+		for _, entry in ipairs(themeRegistry) do
+			if entry.inst and entry.inst.Parent then
+				entry.inst[entry.prop] = Theme[entry.key]
+			end
+		end
+	end)
 	return WindowFunctions
 end
 
-function MacLib:Demo()
-	local Window = MacLib:Window({
+function WMacLib:Demo()
+	local Window = WMacLib:Window({
 		Title = "Maclib Demo",
 		Subtitle = "This is a subtitle.",
 		Size = UDim2.fromOffset(568, 350),
@@ -5690,8 +5767,9 @@ function MacLib:Demo()
 	}
 
 	local tabs = {
-		Main = tabGroups.TabGroup1:Tab({ Name = "Demo", Image = "rbxassetid://18821914323" }),
-		Settings = tabGroups.TabGroup1:Tab({ Name = "Settings", Image = "rbxassetid://10734950309" })
+		Main = tabGroups.TabGroup1:Tab({ Name = "Demo", Image = WMacLib:GetIcon("lucide/layout-dashboard") }),
+		Misc = tabGroups.TabGroup1:Tab({ Name = "Misc", Image = WMacLib:GetIcon("lucide/settings") }),
+		Settings = tabGroups.TabGroup1:Tab({ Name = "Settings", Image = WMacLib:GetIcon("lucide/sliders-horizontal") })
 	}
 
 	local sections = {
@@ -5867,8 +5945,6 @@ function MacLib:Demo()
 		end,
 	})
 
-	sections.MainSection1:Divider()
-
 	sections.MainSection1:Header({
 		Text = "Header #2"
 	})
@@ -5886,8 +5962,38 @@ function MacLib:Demo()
 		Text = "Sub-Label"
 	})
 
-	MacLib:SetFolder("Maclib")
-	-- Updated: Removed Side parameter from InsertConfigSection
+	WMacLib:SetFolder("Maclib")
+
+	local miscSection = tabs.Misc:Section({})
+
+	miscSection:Dropdown({
+		Name = "Theme",
+		Options = WMacLib:GetThemes(),
+		Callback = function(value)
+			WMacLib:SetTheme(value)
+		end,
+	})
+
+	miscSection:Slider({
+		Name = "Window Size",
+		Default = 50,
+		Minimum = 0,
+		Maximum = 100,
+		DisplayMethod = "Percent",
+		Precision = 0,
+		Callback = function(value)
+			local t = value / 100
+			Window:SetSize(UDim2.fromOffset(400 + (1000 - 400) * t, 250 + (800 - 250) * t))
+		end,
+	})
+
+	miscSection:Button({
+		Name = "Unload",
+		Callback = function()
+			Window:Unload()
+		end,
+	})
+
 	tabs.Settings:InsertConfigSection()
 
 	Window.onUnloaded(function()
@@ -5895,7 +6001,7 @@ function MacLib:Demo()
 	end)
 
 	tabs.Main:Select()
-	MacLib:LoadAutoLoadConfig()
+	WMacLib:LoadAutoLoadConfig()
 end
 
-return MacLib
+return WMacLib
