@@ -13,7 +13,7 @@
 ## Quick Start 
 
 ```lua
-local WMacLib = loadstring(game:HttpGet("YOUR_RAW_URL_HERE"))()
+local WMacLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Wicikk/WMacLib/main/WMacLib.lua"))()
 
 local Window = WMacLib:Window({
     Title = "My Script",
