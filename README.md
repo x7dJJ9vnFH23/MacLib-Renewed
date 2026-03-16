@@ -302,6 +302,7 @@ Configs are saved to `MyScriptName/` in the executor's file system. Each element
 ## Demo
 
 ```lua
+local WMacLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Wicikk/WMacLib/main/WMacLib.lua"))()
 WMacLib:Demo()
 ```
 
