@@ -1,9 +1,5 @@
-
 local WMacLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Qiwikox12/PigHub/refs/heads/main/raw__6_%20(4).txt"))()
 
-WMacLib:Demo()
-
---[[
 local Window = WMacLib:Window({
 	Title = "Maclib Demo",
 	Subtitle = "This is a subtitle.",
@@ -264,4 +260,3 @@ end)
 
 tabs.Main:Select()
 MacLib:LoadAutoLoadConfig()
-]]
