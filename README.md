@@ -8,6 +8,7 @@
  - Window dragging no longer cancels on mobile
  - Third window control button now correctly shows as green (like macOS)
  - Themes, Lucide Icons
+ - And More
 
 ---
 
