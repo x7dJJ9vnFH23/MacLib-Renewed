@@ -1,5 +1,5 @@
 # WMacLib 
-![image](https://raw.githubusercontent.com/Wicikk/WMacLib/main/Demo.png)
+![image](https://raw.githubusercontent.com/Wicikk/WMacLib/refs/heads/main/Misc/Demo.png)
 ---
 **WMacLib** is a fork of the original [MacLib](https://github.com/biggaboy212/Maclib) UI library with bug fixes.
 
