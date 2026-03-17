@@ -29,16 +29,68 @@ local WMacLib = {
 
 do
 	local _iconsV2
-	function WMacLib:GetIcon(path)
-		if not _iconsV2 then
-			_iconsV2 = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/Footagesus/Icons/main/Main-v2.lua"))()
+	local _iconsReady = false
+	local _iconsCallbacks = {}
+
+	task.spawn(function()
+		_iconsV2 = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/Footagesus/Icons/main/Main-v2.lua"))()
+		_iconsReady = true
+		for _, cb in ipairs(_iconsCallbacks) do
+			cb(_iconsV2)
 		end
+		_iconsCallbacks = {}
+	end)
+
+	local function resolveWithIcons(icons, path)
 		local iconType, iconName = path:match("^(.+)/(.+)$")
 		if iconType and iconName then
-			_iconsV2.SetIconsType(iconType)
-			return _iconsV2.GetIcon(iconName)
+			icons.SetIconsType(iconType)
+			return icons.GetIcon(iconName)
 		end
-		return _iconsV2.GetIcon(path)
+		return icons.GetIcon(path)
+	end
+
+	function WMacLib:GetIcon(path)
+		if _iconsReady then
+			return resolveWithIcons(_iconsV2, path)
+		end
+		local result
+		local thread = coroutine.running()
+		table.insert(_iconsCallbacks, function(icons)
+			result = resolveWithIcons(icons, path)
+			coroutine.resume(thread)
+		end)
+		coroutine.yield()
+		return result
+	end
+
+	function WMacLib:ResolveImage(path, instance, prop)
+		if not path then return "" end
+		if path:match("^%d+$") then
+			local id = "rbxassetid://" .. path
+			if instance then instance[prop] = id end
+			return id
+		end
+		if path:find("rbxassetid") then
+			if instance then instance[prop] = path end
+			return path
+		end
+		if path:find("/") then
+			if _iconsReady then
+				local id = resolveWithIcons(_iconsV2, path)
+				if instance then instance[prop] = id end
+				return id
+			end
+			if instance then
+				task.spawn(function()
+					table.insert(_iconsCallbacks, function(icons)
+						instance[prop] = resolveWithIcons(icons, path)
+					end)
+				end)
+			end
+			return ""
+		end
+		return path
 	end
 end
 
@@ -65,6 +117,20 @@ WMacLib:AddTheme({
 	Button = Color3.fromRGB(160, 160, 170),
 	Icon = Color3.fromRGB(60, 60, 70),
 })
+
+WMacLib:AddTheme({
+	Name = "Midnight",
+	Accent = Color3.fromRGB(13, 17, 38),
+	Background = Color3.fromRGB(8, 10, 24),
+	Surface = Color3.fromRGB(200, 210, 255),
+	Outline = Color3.fromRGB(60, 80, 180),
+	Text = Color3.fromRGB(210, 220, 255),
+	Placeholder = Color3.fromRGB(90, 100, 150),
+	Button = Color3.fromRGB(40, 55, 120),
+	Icon = Color3.fromRGB(140, 160, 230),
+})
+
+
 
 --// Services
 local TweenService = WMacLib.GetService("TweenService")
@@ -1014,6 +1080,14 @@ function WMacLib:Window(Settings)
 		subtitle.Text = NewSubtitle
 	end
 
+	function WindowFunctions:SetTitle(text)
+		title.Text = text
+	end
+
+	function WindowFunctions:SetSubtitle(text)
+		subtitle.Text = text
+	end
+
 	local hovering
 	local toggled = globalSettingsUIScale.Scale == 1 and true or false
 	local function toggle()
@@ -1510,7 +1584,7 @@ function WMacLib:Window(Settings)
 			if Settings.Image then
 				tabImage = Instance.new("ImageLabel")
 				tabImage.Name = "TabImage"
-				tabImage.Image = Settings.Image
+				tabImage.Image = WMacLib:ResolveImage(Settings.Image, tabImage, "Image")
 				tabImage.ImageTransparency = 0.5
 				tabImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 				tabImage.BackgroundTransparency = 1
@@ -5685,16 +5759,16 @@ function WMacLib:Window(Settings)
 		return out
 	end
 
-	macLib.Enabled = false
-
-	local assetList = {}
-	for _, assetId in pairs(assets) do
-		table.insert(assetList, assetId)
-	end
-
-	ContentProvider:PreloadAsync(assetList)
 	macLib.Enabled = true
 	windowState = true
+
+	task.spawn(function()
+		local assetList = {}
+		for _, assetId in pairs(assets) do
+			table.insert(assetList, assetId)
+		end
+		ContentProvider:PreloadAsync(assetList)
+	end)
 
 	table.insert(WMacLib.themeCallbacks, function(newName)
 		local newTheme = WMacLib.Themes[newName]
@@ -5709,6 +5783,110 @@ function WMacLib:Window(Settings)
 		end
 	end)
 	return WindowFunctions
+end
+
+function WMacLib:Watermark(Settings)
+	local interFont = assets.interFont
+
+	local gui = Instance.new("ScreenGui")
+	gui.ResetOnSpawn = false
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	gui.DisplayOrder = 2147483647
+	gui.Parent = gethui and gethui() or WMacLib.GetService("CoreGui")
+
+	local frame = Instance.new("Frame")
+	frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+	frame.BackgroundTransparency = 0.28
+	frame.BorderSizePixel = 0
+	frame.AnchorPoint = Vector2.new(0, 1)
+	frame.Position = UDim2.new(0, 16, 1, -16)
+	frame.AutomaticSize = Enum.AutomaticSize.XY
+	frame.Parent = gui
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = frame
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(255, 255, 255)
+	stroke.Transparency = 0.9
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = frame
+
+	local layout = Instance.new("UIListLayout")
+	layout.FillDirection = Enum.FillDirection.Horizontal
+	layout.VerticalAlignment = Enum.VerticalAlignment.Center
+	layout.Padding = UDim.new(0, 8)
+	layout.Parent = frame
+
+	local padding = Instance.new("UIPadding")
+	padding.PaddingLeft = UDim.new(0, 12)
+	padding.PaddingRight = UDim.new(0, 12)
+	padding.PaddingTop = UDim.new(0, 6)
+	padding.PaddingBottom = UDim.new(0, 6)
+	padding.Parent = frame
+
+	local statsLabels = {}
+	local statsOrder = {}
+
+	local function makeDivider(order)
+		local d = Instance.new("Frame")
+		d.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		d.BackgroundTransparency = 0.8
+		d.BorderSizePixel = 0
+		d.Size = UDim2.new(0, 1, 0, 12)
+		d.LayoutOrder = order
+		d.Parent = frame
+		return d
+	end
+
+	local function makeLabel(text, alpha, order)
+		local lbl = Instance.new("TextLabel")
+		lbl.BackgroundTransparency = 1
+		lbl.BorderSizePixel = 0
+		lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+		lbl.TextTransparency = alpha or 0.1
+		lbl.TextSize = 13
+		lbl.FontFace = Font.new(interFont, Enum.FontWeight.Medium)
+		lbl.AutomaticSize = Enum.AutomaticSize.XY
+		lbl.LayoutOrder = order
+		lbl.Text = text
+		lbl.Parent = frame
+		return lbl
+	end
+
+	makeLabel(Settings.Name or "Script", 0.1, 1)
+	makeDivider(2)
+	makeLabel(Settings.Version or "v1.0.0", 0.55, 3)
+	makeDivider(4)
+
+	local nextOrder = 5
+
+	local WatermarkFunctions = {}
+
+	function WatermarkFunctions:Set(key, value)
+		if statsLabels[key] then
+			statsLabels[key].Text = tostring(value)
+		else
+			table.insert(statsOrder, key)
+			if #statsOrder > 1 then
+				makeDivider(nextOrder)
+				nextOrder += 1
+			end
+			statsLabels[key] = makeLabel(tostring(value), 0.55, nextOrder)
+			nextOrder += 1
+		end
+	end
+
+	function WatermarkFunctions:Destroy()
+		gui:Destroy()
+	end
+
+	function WatermarkFunctions:SetVisible(bool)
+		gui.Enabled = bool
+	end
+
+	return WatermarkFunctions
 end
 
 function WMacLib:Demo()
@@ -5767,13 +5945,13 @@ function WMacLib:Demo()
 	}
 
 	local tabs = {
-		Main = tabGroups.TabGroup1:Tab({ Name = "Demo", Image = WMacLib:GetIcon("lucide/layout-dashboard") }),
-		Misc = tabGroups.TabGroup1:Tab({ Name = "Misc", Image = WMacLib:GetIcon("lucide/settings") }),
-		Settings = tabGroups.TabGroup1:Tab({ Name = "Settings", Image = WMacLib:GetIcon("lucide/sliders-horizontal") })
+		Main = tabGroups.TabGroup1:Tab({ Name = "Demo", Image = "lucide/layout-dashboard" }),
+		Misc = tabGroups.TabGroup1:Tab({ Name = "Misc", Image = "lucide/settings" }),
+		Settings = tabGroups.TabGroup1:Tab({ Name = "Settings", Image = "lucide/sliders-horizontal" })
 	}
 
 	local sections = {
-		MainSection1 = tabs.Main:Section({}),  -- No Side parameter needed
+		MainSection1 = tabs.Main:Section({}),
 	}
 
 	sections.MainSection1:Header({
@@ -5964,6 +6142,37 @@ function WMacLib:Demo()
 
 	WMacLib:SetFolder("Maclib")
 
+	local watermark = WMacLib:Watermark({ Name = "Maclib Demo", Version = "v1.0.0" })
+
+	local fpsCount, elapsed = 0, 0
+	RunService.RenderStepped:Connect(function(dt)
+		fpsCount += 1
+		elapsed += dt
+		if elapsed >= 0.5 then
+			watermark:Set("FPS", math.round(fpsCount / elapsed) .. " fps")
+			fpsCount = 0
+			elapsed = 0
+		end
+	end)
+
+	task.spawn(function()
+		local subtitleText = "This is a subtitle."
+		while not unloaded do
+			for i = 1, #subtitleText do
+				if unloaded then break end
+				Window:SetSubtitle(subtitleText:sub(1, i))
+				task.wait(0.08)
+			end
+			task.wait(1.5)
+			for i = #subtitleText, 0, -1 do
+				if unloaded then break end
+				Window:SetSubtitle(subtitleText:sub(1, i))
+				task.wait(0.04)
+			end
+			task.wait(0.5)
+		end
+	end)
+
 	local miscSection = tabs.Misc:Section({})
 
 	miscSection:Dropdown({
@@ -5984,6 +6193,21 @@ function WMacLib:Demo()
 		Callback = function(value)
 			local t = value / 100
 			Window:SetSize(UDim2.fromOffset(400 + (1000 - 400) * t, 250 + (800 - 250) * t))
+		end,
+	})
+
+	miscSection:Toggle({
+		Name = "Watermark",
+		Default = true,
+		Callback = function(value)
+			watermark:SetVisible(value)
+		end,
+	})
+
+	miscSection:Button({
+		Name = "Destroy Watermark",
+		Callback = function()
+			watermark:Destroy()
 		end,
 	})
 
