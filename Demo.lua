@@ -55,9 +55,9 @@ local tabGroups = {
 }
 
 local tabs = {
-	Main = tabGroups.TabGroup1:Tab({ Name = "Demo", Image = WMacLib:GetIcon("lucide/layout-dashboard") }),
-	Misc = tabGroups.TabGroup1:Tab({ Name = "Misc", Image = WMacLib:GetIcon("lucide/settings") }),
-	Settings = tabGroups.TabGroup1:Tab({ Name = "Settings", Image = WMacLib:GetIcon("lucide/sliders-horizontal") })
+	Main = tabGroups.TabGroup1:Tab({ Name = "Demo", Image = "lucide/layout-dashboard" }),
+	Misc = tabGroups.TabGroup1:Tab({ Name = "Misc", Image = "lucide/settings" }),
+	Settings = tabGroups.TabGroup1:Tab({ Name = "Settings", Image = "lucide/sliders-horizontal" })
 }
 
 local sections = {
@@ -172,6 +172,7 @@ sections.MainSection1:Toggle({
 	Default = false,
 	Callback = function(value)
 		rainbowActive = value
+
 		if rainbowActive then
 			rainbowConnection = game:GetService("RunService").RenderStepped:Connect(function(deltaTime)
 				hue = (hue + deltaTime * 0.1) % 1
@@ -185,8 +186,16 @@ sections.MainSection1:Toggle({
 }, "RainbowToggle")
 
 local optionTable = {
-	"Apple", "Banana", "Orange", "Grapes", "Pineapple",
-	"Mango", "Strawberry", "Blueberry", "Watermelon", "Peach"
+	"Apple",
+	"Banana",
+	"Orange",
+	"Grapes",
+	"Pineapple",
+	"Mango",
+	"Strawberry",
+	"Blueberry",
+	"Watermelon",
+	"Peach"
 }
 
 local Dropdown = sections.MainSection1:Dropdown({
@@ -243,6 +252,40 @@ sections.MainSection1:SubLabel({
 
 WMacLib:SetFolder("Maclib")
 
+local watermark = WMacLib:Watermark({ Name = "Maclib Demo", Version = "v1.0.0" })
+
+local RunService = game:GetService("RunService")
+local fpsCount, elapsed = 0, 0
+RunService.RenderStepped:Connect(function(dt)
+	fpsCount += 1
+	elapsed += dt
+	if elapsed >= 0.5 then
+		watermark:Set("FPS", math.round(fpsCount / elapsed) .. " fps")
+		fpsCount = 0
+		elapsed = 0
+	end
+end)
+
+local unloaded = false
+
+task.spawn(function()
+	local subtitleText = "This is a subtitle."
+	while not unloaded do
+		for i = 1, #subtitleText do
+			if unloaded then break end
+			Window:SetSubtitle(subtitleText:sub(1, i))
+			task.wait(0.08)
+		end
+		task.wait(1.5)
+		for i = #subtitleText, 0, -1 do
+			if unloaded then break end
+			Window:SetSubtitle(subtitleText:sub(1, i))
+			task.wait(0.04)
+		end
+		task.wait(0.5)
+	end
+end)
+
 local miscSection = tabs.Misc:Section({})
 
 miscSection:Dropdown({
@@ -266,9 +309,25 @@ miscSection:Slider({
 	end,
 })
 
+miscSection:Toggle({
+	Name = "Watermark",
+	Default = true,
+	Callback = function(value)
+		watermark:SetVisible(value)
+	end,
+})
+
+miscSection:Button({
+	Name = "Destroy Watermark",
+	Callback = function()
+		watermark:Destroy()
+	end,
+})
+
 miscSection:Button({
 	Name = "Unload",
 	Callback = function()
+		unloaded = true
 		Window:Unload()
 	end,
 })
@@ -276,6 +335,7 @@ miscSection:Button({
 tabs.Settings:InsertConfigSection()
 
 Window.onUnloaded(function()
+	unloaded = true
 	print("Unloaded!")
 end)
 
