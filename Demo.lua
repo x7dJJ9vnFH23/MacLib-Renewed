@@ -101,7 +101,7 @@ sections.MainSection1:Input({
 	end,
 	onChanged = function(input)
 		print("Input is now " .. input)
-	end,
+	end, 
 }, "Input")
 
 sections.MainSection1:Slider({
