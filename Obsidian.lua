@@ -1,4 +1,4 @@
--- Obsidian Example
+-- Example
 
 local WMacLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Wicikk/WMacLib/refs/heads/main/Misc/WMacLib__7_%20(7).lua"))()
 
