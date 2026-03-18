@@ -56,12 +56,14 @@ local tabGroups = {
 
 local tabs = {
 	Main = tabGroups.TabGroup1:Tab({ Name = "Demo", Image = "lucide/layout-dashboard" }),
-	Misc = tabGroups.TabGroup1:Tab({ Name = "Misc", Image = "lucide/settings" }),
-	Settings = tabGroups.TabGroup1:Tab({ Name = "Settings", Image = "lucide/sliders-horizontal" })
 }
+tabGroups.TabGroup1:Divider()
+tabs.Misc = tabGroups.TabGroup1:Tab({ Name = "Misc", Image = "lucide/settings" })
+tabs.Settings = tabGroups.TabGroup1:Tab({ Name = "Config", Image = "lucide/sliders-horizontal" })
 
 local sections = {
 	MainSection1 = tabs.Main:Section({}),
+	MainSection2 = tabs.Main:Section({ Side = "Right" }),
 }
 
 sections.MainSection1:Header({
@@ -274,6 +276,37 @@ sections.MainSection1:SubLabel({
 
 local DemoLabel = sections.MainSection1:Label({
 	Text = '<font color="rgb(73, 230, 133)">Label</font>'
+})
+
+sections.MainSection2:Header({
+	Text = "Right Section"
+})
+
+sections.MainSection2:Toggle({
+	Name = "Option A",
+	Default = false,
+	Callback = function(value) end,
+})
+
+sections.MainSection2:Toggle({
+	Name = "Option B",
+	Default = true,
+	Callback = function(value) end,
+})
+
+sections.MainSection2:Slider({
+	Name = "Value",
+	Default = 50,
+	Minimum = 0,
+	Maximum = 100,
+	DisplayMethod = "Percent",
+	Precision = 0,
+	Callback = function(value) end,
+})
+
+sections.MainSection2:Button({
+	Name = "Right Button",
+	Callback = function() end,
 })
 
 WMacLib:SetFolder("Maclib")
