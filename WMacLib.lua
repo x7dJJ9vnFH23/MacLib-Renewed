@@ -94,6 +94,34 @@ do
 	end
 end
 
+function WMacLib:Gradient(text, fromColor, toColor)
+	local colors
+	if type(fromColor) == "table" then
+		colors = fromColor
+	else
+		colors = {fromColor, toColor}
+	end
+	local result = ""
+	local len = utf8.len(text)
+	if len == 0 then return text end
+	local segments = #colors - 1
+	local i = 0
+	for _, codepoint in utf8.codes(text) do
+		local t = len > 1 and (i / (len - 1)) or 0
+		local seg = math.min(math.floor(t * segments), segments - 1)
+		local localT = t * segments - seg
+		local c1 = colors[seg + 1]
+		local c2 = colors[seg + 2]
+		local r = math.round(c1.R * 255 + (c2.R * 255 - c1.R * 255) * localT)
+		local g = math.round(c1.G * 255 + (c2.G * 255 - c1.G * 255) * localT)
+		local b = math.round(c1.B * 255 + (c2.B * 255 - c1.B * 255) * localT)
+		local char = utf8.char(codepoint)
+		result = result .. string.format('<font color="rgb(%d,%d,%d)">%s</font>', r, g, b, char)
+		i += 1
+	end
+	return result
+end
+
 WMacLib:AddTheme({
 	Name = "Dark",
 	Accent = Color3.fromRGB(24, 24, 27),
@@ -1736,6 +1764,7 @@ function WMacLib:Window(Settings)
 				function SectionFunctions:Button(Settings, Flag)
 					local ButtonFunctions = {Settings = Settings}
 					local button = Instance.new("Frame")
+					local locked = false
 					button.Name = "Button"
 					button.AutomaticSize = Enum.AutomaticSize.Y
 					button.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -1747,7 +1776,7 @@ function WMacLib:Window(Settings)
 
 					local buttonInteract = Instance.new("TextButton")
 					buttonInteract.Name = "ButtonInteract"
-					buttonInteract.FontFace = Font.new(assets.interFont)
+					buttonInteract.FontFace = Font.new(assets.interFont, ButtonFunctions.Settings.Bold and Enum.FontWeight.Bold or Enum.FontWeight.Regular, Enum.FontStyle.Normal)
 					buttonInteract.RichText = true
 					setThemed(buttonInteract, "TextColor3", "Text")
 					buttonInteract.TextSize = 13
@@ -1800,6 +1829,7 @@ function WMacLib:Window(Settings)
 					end
 
 					local function Callback()
+						if locked then return end
 						if ButtonFunctions.Settings.Callback then
 							ButtonFunctions.Settings.Callback()
 						end
@@ -1816,8 +1846,29 @@ function WMacLib:Window(Settings)
 					function ButtonFunctions:UpdateName(Name)
 						buttonInteract.Text = Name
 					end
+					function ButtonFunctions:SetName(Name)
+						buttonInteract.Text = Name
+					end
 					function ButtonFunctions:SetVisibility(State)
 						button.Visible = State
+					end
+					function ButtonFunctions:Destroy()
+						button:Destroy()
+					end
+					function ButtonFunctions:Lock()
+						buttonInteract.Active = false
+						buttonInteract.Interactable = false
+						buttonInteract.TextTransparency = 0.75
+						buttonImage.ImageTransparency = 0.75
+					end
+					function ButtonFunctions:Unlock()
+						buttonInteract.Active = true
+						buttonInteract.Interactable = true
+						buttonInteract.TextTransparency = 0.5
+						buttonImage.ImageTransparency = 0.5
+					end
+					function ButtonFunctions:GetLocked()
+						return locked
 					end
 
 					if Flag then
@@ -1840,7 +1891,7 @@ function WMacLib:Window(Settings)
 
 					local toggleName = Instance.new("TextLabel")
 					toggleName.Name = "ToggleName"
-					toggleName.FontFace = Font.new(assets.interFont)
+					toggleName.FontFace = Font.new(assets.interFont, ToggleFunctions.Settings.Bold and Enum.FontWeight.Bold or Enum.FontWeight.Regular, Enum.FontStyle.Normal)
 					toggleName.Text = ToggleFunctions.Settings.Name
 					toggleName.RichText = true
 					setThemed(toggleName, "TextColor3", "Text")
@@ -1909,6 +1960,7 @@ function WMacLib:Window(Settings)
 					}
 
 					local togglebool = ToggleFunctions.Settings.Default
+					local locked = false
 
 					local function NewState(State, callback)
 						local transparencyValues = State and {toggle1Transparency.Enabled, togglerHeadTransparency.Enabled}
@@ -1936,6 +1988,7 @@ function WMacLib:Window(Settings)
 					NewState(togglebool)
 
 					local function Toggle()
+						if locked then return end
 						togglebool = not togglebool
 						NewState(togglebool, ToggleFunctions.Settings.Callback)
 					end
@@ -1955,8 +2008,28 @@ function WMacLib:Window(Settings)
 					function ToggleFunctions:UpdateName(Name)
 						toggleName.Text = Name
 					end
+					function ToggleFunctions:SetName(Name)
+						toggleName.Text = Name
+					end
 					function ToggleFunctions:SetVisibility(State)
 						toggle.Visible = State
+					end
+					function ToggleFunctions:Destroy()
+						toggle:Destroy()
+					end
+					function ToggleFunctions:Lock()
+						locked = true
+						toggleName.TextTransparency = 0.75
+						toggle1.ImageTransparency = 0.85
+						togglerHead.ImageTransparency = 0.9
+					end
+					function ToggleFunctions:Unlock()
+						locked = false
+						toggleName.TextTransparency = 0.5
+						NewState(togglebool)
+					end
+					function ToggleFunctions:GetLocked()
+						return locked
 					end
 
 					if Flag then
@@ -1979,7 +2052,7 @@ function WMacLib:Window(Settings)
 
 					local sliderName = Instance.new("TextLabel")
 					sliderName.Name = "SliderName"
-					sliderName.FontFace = Font.new(assets.interFont)
+					sliderName.FontFace = Font.new(assets.interFont, SliderFunctions.Settings.Bold and Enum.FontWeight.Bold or Enum.FontWeight.Regular, Enum.FontStyle.Normal)
 					sliderName.Text = SliderFunctions.Settings.Name
 					sliderName.RichText = true
 					setThemed(sliderName, "TextColor3", "Text")
@@ -2085,6 +2158,7 @@ function WMacLib:Window(Settings)
 
 					local dragging = false
 					local dragInput = nil
+					local locked = false
 
 					local DisplayMethods = {
 						Hundredths = function(sliderValue)
@@ -2148,6 +2222,7 @@ function WMacLib:Window(Settings)
 					SetValue(SliderFunctions.Settings.Default, true)
 
 					sliderHead.InputBegan:Connect(function(input)
+						if locked then return end
 						if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 							dragging = true
 							dragInput = input
@@ -2156,6 +2231,7 @@ function WMacLib:Window(Settings)
 					end)
 
 					sliderBar.InputBegan:Connect(function(input)
+						if locked then return end
 						if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 							dragging = true
 							dragInput = input
@@ -2174,6 +2250,10 @@ function WMacLib:Window(Settings)
 					end)
 
 					sliderValue.FocusLost:Connect(function(enterPressed)
+						if locked then
+							sliderValue.Text = (Settings.Prefix or "") .. ValueDisplayMethod(finalValue, SliderFunctions.Settings.Precision) .. (Settings.Suffix or "")
+							return
+						end
 						local inputText = sliderValue.Text
 						local value, isPercent = inputText:match("^(%-?%d+%.?%d*)(%%?)$")
 
@@ -2197,6 +2277,7 @@ function WMacLib:Window(Settings)
 					end)
 
 					UserInputService.InputChanged:Connect(function(input)
+						if locked then return end
 						if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input == dragInput) then
 							SetValue(input)
 						end
@@ -2218,10 +2299,33 @@ function WMacLib:Window(Settings)
 					section:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateSliderBarSize)
 
 					function SliderFunctions:UpdateName(Name)
-						sliderName = Name
+						sliderName.Text = Name
+					end
+					function SliderFunctions:SetName(Name)
+						sliderName.Text = Name
 					end
 					function SliderFunctions:SetVisibility(State)
 						slider.Visible = State
+					end
+					function SliderFunctions:Destroy()
+						slider:Destroy()
+					end
+					function SliderFunctions:Lock()
+						locked = true
+						sliderName.TextTransparency = 0.75
+						sliderBar.ImageTransparency = 0.6
+						sliderHead.ImageTransparency = 0.6
+						sliderValue.TextTransparency = 0.75
+					end
+					function SliderFunctions:Unlock()
+						locked = false
+						sliderName.TextTransparency = 0.5
+						sliderBar.ImageTransparency = 0
+						sliderHead.ImageTransparency = 0
+						sliderValue.TextTransparency = 0.1
+					end
+					function SliderFunctions:GetLocked()
+						return locked
 					end
 					function SliderFunctions:UpdateValue(Value)
 						SetValue(tonumber(Value), true)
@@ -2239,6 +2343,7 @@ function WMacLib:Window(Settings)
 				function SectionFunctions:Input(Settings, Flag)
 					local InputFunctions = { Settings = Settings, IgnoreConfig = false, Class = "Input" }
 					local input = Instance.new("Frame")
+					local locked = false
 					input.Name = "Input"
 					input.AutomaticSize = Enum.AutomaticSize.Y
 					input.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -2250,7 +2355,7 @@ function WMacLib:Window(Settings)
 
 					local inputName = Instance.new("TextLabel")
 					inputName.Name = "InputName"
-					inputName.FontFace = Font.new(assets.interFont)
+					inputName.FontFace = Font.new(assets.interFont, InputFunctions.Settings.Bold and Enum.FontWeight.Bold or Enum.FontWeight.Regular, Enum.FontStyle.Normal)
 					inputName.Text = InputFunctions.Settings.Name
 					inputName.RichText = true
 					setThemed(inputName, "TextColor3", "Text")
@@ -2363,6 +2468,10 @@ function WMacLib:Window(Settings)
 					InputName:GetPropertyChangedSignal("AbsoluteSize"):Connect(checkSize)
 
 					InputBox.FocusLost:Connect(function()
+						if locked then
+							InputBox.Text = InputBox.Text
+							return
+						end
 						local inputText = InputBox.Text
 						local filteredText = AcceptedCharacters(inputText)
 						InputBox.Text = filteredText
@@ -2376,6 +2485,7 @@ function WMacLib:Window(Settings)
 					InputBox.PlaceholderText = InputFunctions.Settings.Placeholder or ""
 
 					InputBox:GetPropertyChangedSignal("Text"):Connect(function()
+						if locked then return end
 						InputBox.Text = AcceptedCharacters(InputBox.Text)
 						if InputFunctions.Settings.onChanged then
 							InputFunctions.Settings.onChanged(InputBox.Text)
@@ -2386,8 +2496,29 @@ function WMacLib:Window(Settings)
 					function InputFunctions:UpdateName(Name)
 						inputName.Text = Name
 					end
+					function InputFunctions:SetName(Name)
+						inputName.Text = Name
+					end
 					function InputFunctions:SetVisibility(State)
 						input.Visible = State
+					end
+					function InputFunctions:Destroy()
+						input:Destroy()
+					end
+					function InputFunctions:Lock()
+						locked = true
+						inputName.TextTransparency = 0.75
+						InputBox.TextTransparency = 0.75
+						InputBox.PlaceholderColor3 = Color3.fromRGB(80, 80, 80)
+					end
+					function InputFunctions:Unlock()
+						locked = false
+						inputName.TextTransparency = 0.5
+						InputBox.TextTransparency = 0.5
+						InputBox.PlaceholderColor3 = Color3.fromRGB(122, 122, 122)
+					end
+					function InputFunctions:GetLocked()
+						return locked
 					end
 					function InputFunctions:GetInput()
 						return InputBox.Text
@@ -2415,6 +2546,7 @@ function WMacLib:Window(Settings)
 				function SectionFunctions:Keybind(Settings, Flag)
 					local KeybindFunctions = { Settings = Settings, IgnoreConfig = false, Class = "Keybind" }
 					local keybind = Instance.new("Frame")
+					local locked = false
 					keybind.Name = "Keybind"
 					keybind.AutomaticSize = Enum.AutomaticSize.Y
 					keybind.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -2426,7 +2558,7 @@ function WMacLib:Window(Settings)
 
 					local keybindName = Instance.new("TextLabel")
 					keybindName.Name = "KeybindName"
-					keybindName.FontFace = Font.new(assets.interFont)
+					keybindName.FontFace = Font.new(assets.interFont, KeybindFunctions.Settings.Bold and Enum.FontWeight.Bold or Enum.FontWeight.Regular, Enum.FontStyle.Normal)
 					keybindName.Text = KeybindFunctions.Settings.Name
 					keybindName.RichText = true
 					setThemed(keybindName, "TextColor3", "Text")
@@ -2504,6 +2636,7 @@ function WMacLib:Window(Settings)
 					end
 
 					binderBox.Focused:Connect(function()
+						if locked then binderBox:ReleaseFocus() return end
 						focused = true
 					end)
 
@@ -2578,11 +2711,29 @@ function WMacLib:Window(Settings)
 					end
 
 					function KeybindFunctions:UpdateName(Name)
-						keybindName = Name
+						keybindName.Text = Name
 					end
-
+					function KeybindFunctions:SetName(Name)
+						keybindName.Text = Name
+					end
 					function KeybindFunctions:SetVisibility(State)
 						keybind.Visible = State
+					end
+					function KeybindFunctions:Destroy()
+						keybind:Destroy()
+					end
+					function KeybindFunctions:Lock()
+						locked = true
+						keybindName.TextTransparency = 0.75
+						binderBox.TextTransparency = 0.75
+					end
+					function KeybindFunctions:Unlock()
+						locked = false
+						keybindName.TextTransparency = 0.5
+						binderBox.TextTransparency = 0.1
+					end
+					function KeybindFunctions:GetLocked()
+						return locked
 					end
 
 					if Flag then
@@ -2595,6 +2746,7 @@ function WMacLib:Window(Settings)
 				function SectionFunctions:Dropdown(Settings, Flag)
 					local DropdownFunctions = { Settings = Settings, IgnoreConfig = false, Class = "Dropdown" }
 					local Selected = {}
+					local locked = false
 					local OptionObjs = {}
 
 					local dropdown = Instance.new("Frame")
@@ -2628,7 +2780,7 @@ function WMacLib:Window(Settings)
 
 					local dropdownName = Instance.new("TextLabel")
 					dropdownName.Name = "DropdownName"
-					dropdownName.FontFace = Font.new(assets.interFont)
+					dropdownName.FontFace = Font.new(assets.interFont, DropdownFunctions.Settings.Bold and Enum.FontWeight.Bold or Enum.FontWeight.Regular, Enum.FontStyle.Normal)
 					dropdownName.Text = Settings.Default and (DropdownFunctions.Settings.Name .. " • " .. table.concat(Selected, ", ")) or (DropdownFunctions.Settings.Name .. "...")
 					dropdownName.RichText = true
 					setThemed(dropdownName, "TextColor3", "Text")
@@ -2865,6 +3017,7 @@ function WMacLib:Window(Settings)
 					local db = false
 
 					local function ToggleDropdown()
+						if locked then return end
 						if db then return end
 						db = true
 						local defaultDropdownSize = 38
@@ -3052,8 +3205,25 @@ function WMacLib:Window(Settings)
 					function DropdownFunctions:UpdateName(New)
 						dropdownName.Text = New
 					end
+					function DropdownFunctions:SetName(New)
+						dropdownName.Text = New
+					end
 					function DropdownFunctions:SetVisibility(State)
 						dropdown.Visible = State
+					end
+					function DropdownFunctions:Destroy()
+						dropdown:Destroy()
+					end
+					function DropdownFunctions:Lock()
+						locked = true
+						dropdownName.TextTransparency = 0.75
+					end
+					function DropdownFunctions:Unlock()
+						locked = false
+						dropdownName.TextTransparency = 0.5
+					end
+					function DropdownFunctions:GetLocked()
+						return locked
 					end
 					function DropdownFunctions:UpdateSelection(newSelection)
 						if not newSelection then return end
@@ -3166,6 +3336,7 @@ function WMacLib:Window(Settings)
 
 				function SectionFunctions:Colorpicker(Settings, Flag)
 					local ColorpickerFunctions = { Settings = Settings, IgnoreConfig = false, Class = "Colorpicker" }
+					local locked = false
 
 					local isAlpha = ColorpickerFunctions.Settings.Alpha and true or false
 					ColorpickerFunctions.Color = ColorpickerFunctions.Settings.Default
@@ -3183,7 +3354,7 @@ function WMacLib:Window(Settings)
 
 					local colorpickerName = Instance.new("TextLabel")
 					colorpickerName.Name = "KeybindName"
-					colorpickerName.FontFace = Font.new(assets.interFont)
+					colorpickerName.FontFace = Font.new(assets.interFont, ColorpickerFunctions.Settings.Bold and Enum.FontWeight.Bold or Enum.FontWeight.Regular, Enum.FontStyle.Normal)
 					colorpickerName.Text = Settings.Name
 					setThemed(colorpickerName, "TextColor3", "Text")
 					colorpickerName.TextSize = 13
@@ -4379,6 +4550,7 @@ function WMacLib:Window(Settings)
 					end
 
 					local function colorpickerIn()
+						if locked then return end
 						transition(true)
 					end
 
@@ -4413,8 +4585,27 @@ function WMacLib:Window(Settings)
 					function ColorpickerFunctions:UpdateName(New)
 						colorpickerName.Text = New
 					end
+					function ColorpickerFunctions:SetName(New)
+						colorpickerName.Text = New
+					end
 					function ColorpickerFunctions:SetVisibility(State)
 						colorpicker.Visible = State
+					end
+					function ColorpickerFunctions:Destroy()
+						colorpicker:Destroy()
+					end
+					function ColorpickerFunctions:Lock()
+						locked = true
+						colorpickerName.TextTransparency = 0.75
+						colorCbg.ImageTransparency = 0.6
+					end
+					function ColorpickerFunctions:Unlock()
+						locked = false
+						colorpickerName.TextTransparency = 0.5
+						colorCbg.ImageTransparency = 0
+					end
+					function ColorpickerFunctions:GetLocked()
+						return locked
 					end
 
 					function ColorpickerFunctions:SetColor(color3)
@@ -4502,8 +4693,14 @@ function WMacLib:Window(Settings)
 					function HeaderFunctions:UpdateName(New)
 						headerText.Text = New
 					end
+					function HeaderFunctions:SetName(New)
+						headerText.Text = New
+					end
 					function HeaderFunctions:SetVisibility(State)
 						header.Visible = State
+					end
+					function HeaderFunctions:Destroy()
+						header:Destroy()
 					end
 
 					if Flag then
@@ -4527,7 +4724,7 @@ function WMacLib:Window(Settings)
 
 					local labelText = Instance.new("TextLabel")
 					labelText.Name = "LabelText"
-					labelText.FontFace = Font.new(assets.interFont)
+					labelText.FontFace = Font.new(assets.interFont, LabelFunctions.Settings.Bold and Enum.FontWeight.Bold or Enum.FontWeight.Regular, Enum.FontStyle.Normal)
 					labelText.RichText = true
 					labelText.Text = LabelFunctions.Settings.Text or LabelFunctions.Settings.Name -- Settings.Name Deprecated use Settings.Text
 					setThemed(labelText, "TextColor3", "Text")
@@ -4546,8 +4743,14 @@ function WMacLib:Window(Settings)
 					function LabelFunctions:UpdateName(New)
 						labelText.Text = New
 					end
+					function LabelFunctions:SetName(New)
+						labelText.Text = New
+					end
 					function LabelFunctions:SetVisibility(State)
 						label.Visible = State
+					end
+					function LabelFunctions:Destroy()
+						label:Destroy()
 					end
 
 					if Flag then
@@ -4571,7 +4774,7 @@ function WMacLib:Window(Settings)
 
 					local subLabelText = Instance.new("TextLabel")
 					subLabelText.Name = "SubLabelText"
-					subLabelText.FontFace = Font.new(assets.interFont)
+					subLabelText.FontFace = Font.new(assets.interFont, SubLabelFunctions.Settings.Bold and Enum.FontWeight.Bold or Enum.FontWeight.Regular, Enum.FontStyle.Normal)
 					subLabelText.RichText = true
 					subLabelText.Text = SubLabelFunctions.Settings.Text or SubLabelFunctions.Settings.Name -- Settings.Name Deprecated use Settings.Text
 					setThemed(subLabelText, "TextColor3", "Text")
@@ -4590,8 +4793,14 @@ function WMacLib:Window(Settings)
 					function SubLabelFunctions:UpdateName(New)
 						subLabelText.Text = New
 					end
+					function SubLabelFunctions:SetName(New)
+						subLabelText.Text = New
+					end
 					function SubLabelFunctions:SetVisibility(State)
 						subLabel.Visible = State
+					end
+					function SubLabelFunctions:Destroy()
+						subLabel:Destroy()
 					end
 
 					if Flag then
@@ -4643,7 +4852,7 @@ function WMacLib:Window(Settings)
 
 					local paragraphBody = Instance.new("TextLabel")
 					paragraphBody.Name = "ParagraphBody"
-					paragraphBody.FontFace = Font.new(assets.interFont)
+					paragraphBody.FontFace = Font.new(assets.interFont, ParagraphFunctions.Settings.Bold and Enum.FontWeight.Bold or Enum.FontWeight.Regular, Enum.FontStyle.Normal)
 					paragraphBody.RichText = true
 					paragraphBody.Text = ParagraphFunctions.Settings.Body
 					setThemed(paragraphBody, "TextColor3", "Text")
@@ -4666,8 +4875,14 @@ function WMacLib:Window(Settings)
 					function ParagraphFunctions:UpdateBody(New)
 						paragraphBody.Text = New
 					end
+					function ParagraphFunctions:SetName(New)
+						paragraphHeader.Text = New
+					end
 					function ParagraphFunctions:SetVisibility(State)
 						paragraph.Visible = State
+					end
+					function ParagraphFunctions:Destroy()
+						paragraph:Destroy()
 					end
 
 					if Flag then
@@ -4714,6 +4929,9 @@ function WMacLib:Window(Settings)
 					function DividerFunctions:Remove()
 						divider:Destroy()
 					end
+					function DividerFunctions:Destroy()
+						divider:Destroy()
+					end
 					function DividerFunctions:SetVisibility(State)
 						divider.Visible = State
 					end
@@ -4737,11 +4955,22 @@ function WMacLib:Window(Settings)
 					function SpacerFunctions:Remove()
 						spacer:Destroy()
 					end
+					function SpacerFunctions:Destroy()
+						spacer:Destroy()
+					end
 					function SpacerFunctions:SetVisibility(State)
 						spacer.Visible = State
 					end
 
 					return SpacerFunctions
+				end
+
+				function SectionFunctions:SetVisible(State)
+					section.Visible = State
+				end
+
+				function SectionFunctions:Destroy()
+					section:Destroy()
 				end
 
 				return SectionFunctions
@@ -4787,6 +5016,18 @@ function WMacLib:Window(Settings)
 
 			function TabFunctions:Select()
 				SelectCurrentTab()
+			end
+
+			function TabFunctions:SetName(Name)
+				tabSwitcherName.Text = Name
+			end
+
+			function TabFunctions:SetVisibility(State)
+				tabSwitcher.Visible = State
+			end
+
+			function TabFunctions:Destroy()
+				tabSwitcher:Destroy()
 			end
 
 			function TabFunctions:InsertConfigSection(Side)
@@ -5483,11 +5724,18 @@ function WMacLib:Window(Settings)
 	end
 
 	local function _SetUserInfoState(State)
-		if State then
+		if State == true then
+			userInfo.Visible = true
+			tabSwitchers.Size = UDim2.new(1, 0, 1, -107)
 			headshot.Image = (isReady and headshotImage) or "rbxassetid://0"
 			username.Text = "@" .. LocalPlayer.Name
 			displayName.Text = LocalPlayer.DisplayName
-		else
+		elseif State == false then
+			userInfo.Visible = false
+			tabSwitchers.Size = UDim2.new(1, 0, 1, 0)
+		elseif State == "redact" then
+			userInfo.Visible = true
+			tabSwitchers.Size = UDim2.new(1, 0, 1, -107)
 			headshot.Image = assets.userInfoBlurred
 			local nameLength = #LocalPlayer.Name
 			local displayNameLength = #LocalPlayer.DisplayName
@@ -5955,7 +6203,7 @@ function WMacLib:Demo()
 	}
 
 	sections.MainSection1:Header({
-		Name = "Header #1"
+		Name = WMacLib:Gradient("Header #1", Color3.fromRGB(255, 180, 50), Color3.fromRGB(255, 80, 80))
 	})
 
 	sections.MainSection1:Button({
@@ -5994,7 +6242,7 @@ function WMacLib:Demo()
 		end,
 	}, "Input")
 
-	sections.MainSection1:Slider({
+	local DemoSlider = sections.MainSection1:Slider({
 		Name = "Slider",
 		Default = 50,
 		Minimum = 0,
@@ -6016,6 +6264,32 @@ function WMacLib:Demo()
 			})
 		end,
 	}, "Toggle")
+
+	sections.MainSection1:Toggle({
+		Name = '<font color="rgb(73, 230, 133)">Show Slider</font>',
+		Default = true,
+		Callback = function(value)
+			DemoSlider:SetVisibility(value)
+		end,
+	})
+
+	sections.MainSection1:Button({
+		Name = "Bold Button",
+		Bold = true,
+		Callback = function() end,
+	})
+
+	sections.MainSection1:Toggle({
+		Name = "Bold Toggle",
+		Bold = true,
+		Default = false,
+		Callback = function() end,
+	})
+
+	sections.MainSection1:Label({
+		Text = "Bold Label",
+		Bold = true,
+	})
 
 	sections.MainSection1:Keybind({
 		Name = "Keybind",
@@ -6132,12 +6406,12 @@ function WMacLib:Demo()
 		Body = "Paragraph body"
 	})
 
-	sections.MainSection1:Label({
-		Text = "Label"
-	})
-
 	sections.MainSection1:SubLabel({
 		Text = "Sub-Label"
+	})
+
+	local DemoLabel = sections.MainSection1:Label({
+		Text = '<font color="rgb(73, 230, 133)">Label</font>'
 	})
 
 	WMacLib:SetFolder("Maclib")
@@ -6160,13 +6434,13 @@ function WMacLib:Demo()
 		while not unloaded do
 			for i = 1, #subtitleText do
 				if unloaded then break end
-				Window:SetSubtitle(subtitleText:sub(1, i))
+				Window:SetSubtitle(WMacLib:Gradient(subtitleText:sub(1, i), {Color3.fromRGB(73, 230, 133), Color3.fromRGB(100, 150, 255), Color3.fromRGB(255, 100, 180)}))
 				task.wait(0.08)
 			end
 			task.wait(1.5)
 			for i = #subtitleText, 0, -1 do
 				if unloaded then break end
-				Window:SetSubtitle(subtitleText:sub(1, i))
+				Window:SetSubtitle(WMacLib:Gradient(subtitleText:sub(1, i), {Color3.fromRGB(73, 230, 133), Color3.fromRGB(100, 150, 255), Color3.fromRGB(255, 100, 180)}))
 				task.wait(0.04)
 			end
 			task.wait(0.5)
@@ -6197,6 +6471,26 @@ function WMacLib:Demo()
 	})
 
 	miscSection:Toggle({
+		Name = "Lock Slider",
+		Default = false,
+		Callback = function(value)
+			if value then
+				DemoSlider:Lock()
+			else
+				DemoSlider:Unlock()
+			end
+		end,
+	})
+
+	miscSection:Toggle({
+		Name = "User Info",
+		Default = true,
+		Callback = function(value)
+			Window:SetUserInfoState(value)
+		end,
+	})
+
+	miscSection:Toggle({
 		Name = "Watermark",
 		Default = true,
 		Callback = function(value)
@@ -6208,6 +6502,24 @@ function WMacLib:Demo()
 		Name = "Destroy Watermark",
 		Callback = function()
 			watermark:Destroy()
+		end,
+	})
+
+	miscSection:Button({
+		Name = "Destroy Label",
+		Callback = function()
+			DemoLabel:Destroy()
+		end,
+	})
+
+	miscSection:Input({
+		Name = "Rename Label",
+		Placeholder = "New label text...",
+		AcceptedCharacters = "All",
+		Callback = function(text)
+			if text ~= "" then
+				DemoLabel:SetName(text)
+			end
 		end,
 	})
 
