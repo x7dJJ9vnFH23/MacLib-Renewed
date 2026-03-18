@@ -1,4 +1,4 @@
-local WMacLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Wicikk/WMacLib/main/WMacLib.lua"))()
+local WMacLib = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/Wicikk/WMacLib/main/WMacLib.lua"))()
 
 local Window = WMacLib:Window({
 	Title = "Maclib Demo",
@@ -65,7 +65,7 @@ local sections = {
 }
 
 sections.MainSection1:Header({
-	Name = "Header #1"
+	Name = WMacLib:Gradient("Header #1", Color3.fromRGB(255, 180, 50), Color3.fromRGB(255, 80, 80))
 })
 
 sections.MainSection1:Button({
@@ -101,10 +101,10 @@ sections.MainSection1:Input({
 	end,
 	onChanged = function(input)
 		print("Input is now " .. input)
-	end, 
+	end,
 }, "Input")
 
-sections.MainSection1:Slider({
+local DemoSlider = sections.MainSection1:Slider({
 	Name = "Slider",
 	Default = 50,
 	Minimum = 0,
@@ -126,6 +126,32 @@ sections.MainSection1:Toggle({
 		})
 	end,
 }, "Toggle")
+
+sections.MainSection1:Toggle({
+	Name = '<font color="rgb(73, 230, 133)">Show Slider</font>',
+	Default = true,
+	Callback = function(value)
+		DemoSlider:SetVisibility(value)
+	end,
+})
+
+sections.MainSection1:Button({
+	Name = "Bold Button",
+	Bold = true,
+	Callback = function() end,
+})
+
+sections.MainSection1:Toggle({
+	Name = "Bold Toggle",
+	Bold = true,
+	Default = false,
+	Callback = function() end,
+})
+
+sections.MainSection1:Label({
+	Text = "Bold Label",
+	Bold = true,
+})
 
 sections.MainSection1:Keybind({
 	Name = "Keybind",
@@ -242,19 +268,18 @@ sections.MainSection1:Paragraph({
 	Body = "Paragraph body"
 })
 
-sections.MainSection1:Label({
-	Text = "Label"
-})
-
 sections.MainSection1:SubLabel({
 	Text = "Sub-Label"
+})
+
+local DemoLabel = sections.MainSection1:Label({
+	Text = '<font color="rgb(73, 230, 133)">Label</font>'
 })
 
 WMacLib:SetFolder("Maclib")
 
 local watermark = WMacLib:Watermark({ Name = "Maclib Demo", Version = "v1.0.0" })
 
-local RunService = game:GetService("RunService")
 local fpsCount, elapsed = 0, 0
 RunService.RenderStepped:Connect(function(dt)
 	fpsCount += 1
@@ -266,20 +291,18 @@ RunService.RenderStepped:Connect(function(dt)
 	end
 end)
 
-local unloaded = false
-
 task.spawn(function()
 	local subtitleText = "This is a subtitle."
 	while not unloaded do
 		for i = 1, #subtitleText do
 			if unloaded then break end
-			Window:SetSubtitle(subtitleText:sub(1, i))
+			Window:SetSubtitle(WMacLib:Gradient(subtitleText:sub(1, i), {Color3.fromRGB(73, 230, 133), Color3.fromRGB(100, 150, 255), Color3.fromRGB(255, 100, 180)}))
 			task.wait(0.08)
 		end
 		task.wait(1.5)
 		for i = #subtitleText, 0, -1 do
 			if unloaded then break end
-			Window:SetSubtitle(subtitleText:sub(1, i))
+			Window:SetSubtitle(WMacLib:Gradient(subtitleText:sub(1, i), {Color3.fromRGB(73, 230, 133), Color3.fromRGB(100, 150, 255), Color3.fromRGB(255, 100, 180)}))
 			task.wait(0.04)
 		end
 		task.wait(0.5)
@@ -310,6 +333,26 @@ miscSection:Slider({
 })
 
 miscSection:Toggle({
+	Name = "Lock Slider",
+	Default = false,
+	Callback = function(value)
+		if value then
+			DemoSlider:Lock()
+		else
+			DemoSlider:Unlock()
+		end
+	end,
+})
+
+miscSection:Toggle({
+	Name = "User Info",
+	Default = true,
+	Callback = function(value)
+		Window:SetUserInfoState(value)
+	end,
+})
+
+miscSection:Toggle({
 	Name = "Watermark",
 	Default = true,
 	Callback = function(value)
@@ -325,9 +368,26 @@ miscSection:Button({
 })
 
 miscSection:Button({
+	Name = "Destroy Label",
+	Callback = function()
+		DemoLabel:Destroy()
+	end,
+})
+
+miscSection:Input({
+	Name = "Rename Label",
+	Placeholder = "New label text...",
+	AcceptedCharacters = "All",
+	Callback = function(text)
+		if text ~= "" then
+			DemoLabel:SetName(text)
+		end
+	end,
+})
+
+miscSection:Button({
 	Name = "Unload",
 	Callback = function()
-		unloaded = true
 		Window:Unload()
 	end,
 })
@@ -335,7 +395,6 @@ miscSection:Button({
 tabs.Settings:InsertConfigSection()
 
 Window.onUnloaded(function()
-	unloaded = true
 	print("Unloaded!")
 end)
 
