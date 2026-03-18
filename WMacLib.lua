@@ -1702,28 +1702,94 @@ function WMacLib:Window(Settings)
 			elementsScrollingUIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 			elementsScrollingUIListLayout.Parent = elementsScrolling
 
-			-- Single column layout - removed left/right split
-			local contentColumn = Instance.new("Frame")
-			contentColumn.Name = "ContentColumn"
-			contentColumn.AutomaticSize = Enum.AutomaticSize.Y
-			contentColumn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-			contentColumn.BackgroundTransparency = 1
-			contentColumn.BorderColor3 = Color3.fromRGB(0, 0, 0)
-			contentColumn.BorderSizePixel = 0
-			contentColumn.Size = UDim2.new(1, -20, 0, 0)
+			local contentRow = Instance.new("Frame")
+			contentRow.Name = "ContentRow"
+			contentRow.AutomaticSize = Enum.AutomaticSize.Y
+			contentRow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+			contentRow.BackgroundTransparency = 1
+			contentRow.BorderColor3 = Color3.fromRGB(0, 0, 0)
+			contentRow.BorderSizePixel = 0
+			contentRow.Size = UDim2.new(1, -20, 0, 0)
 
-			local contentColumnUIListLayout = Instance.new("UIListLayout")
-			contentColumnUIListLayout.Name = "ContentColumnUIListLayout"
-			contentColumnUIListLayout.Padding = UDim.new(0, 15)
-			contentColumnUIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-			contentColumnUIListLayout.Parent = contentColumn
+			local contentRowUIListLayout = Instance.new("UIListLayout")
+			contentRowUIListLayout.Name = "ContentRowUIListLayout"
+			contentRowUIListLayout.FillDirection = Enum.FillDirection.Horizontal
+			contentRowUIListLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+			contentRowUIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+			contentRowUIListLayout.Padding = UDim.new(0, 10)
+			contentRowUIListLayout.Parent = contentRow
 
-			contentColumn.Parent = elementsScrolling
+			local contentColumnLeft = Instance.new("Frame")
+			contentColumnLeft.Name = "ContentColumnLeft"
+			contentColumnLeft.AutomaticSize = Enum.AutomaticSize.Y
+			contentColumnLeft.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+			contentColumnLeft.BackgroundTransparency = 1
+			contentColumnLeft.BorderColor3 = Color3.fromRGB(0, 0, 0)
+			contentColumnLeft.BorderSizePixel = 0
+			contentColumnLeft.LayoutOrder = 0
+			contentColumnLeft.Size = UDim2.new(0.5, -5, 0, 0)
+
+			local contentColumnLeftUIListLayout = Instance.new("UIListLayout")
+			contentColumnLeftUIListLayout.Name = "ContentColumnLeftUIListLayout"
+			contentColumnLeftUIListLayout.Padding = UDim.new(0, 15)
+			contentColumnLeftUIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+			contentColumnLeftUIListLayout.Parent = contentColumnLeft
+
+			contentColumnLeft.Parent = contentRow
+
+			local contentColumnRight = Instance.new("Frame")
+			contentColumnRight.Name = "ContentColumnRight"
+			contentColumnRight.AutomaticSize = Enum.AutomaticSize.Y
+			contentColumnRight.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+			contentColumnRight.BackgroundTransparency = 1
+			contentColumnRight.BorderColor3 = Color3.fromRGB(0, 0, 0)
+			contentColumnRight.BorderSizePixel = 0
+			contentColumnRight.LayoutOrder = 1
+			contentColumnRight.Size = UDim2.new(0.5, -5, 0, 0)
+
+			local contentColumnRightUIListLayout = Instance.new("UIListLayout")
+			contentColumnRightUIListLayout.Name = "ContentColumnRightUIListLayout"
+			contentColumnRightUIListLayout.Padding = UDim.new(0, 15)
+			contentColumnRightUIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+			contentColumnRightUIListLayout.Parent = contentColumnRight
+
+			contentColumnRight.Parent = contentRow
+
+			contentRow.Parent = elementsScrolling
 
 			elementsScrolling.Parent = elements1
 
+			local RESPONSIVE_THRESHOLD = 650
+			local rightSections = {}
+
+			local function updateLayout()
+				local width = base.AbsoluteSize.X
+				local isWide = width >= RESPONSIVE_THRESHOLD
+				local hasRight = #rightSections > 0
+
+				if isWide and hasRight then
+					contentColumnLeft.Size = UDim2.new(0.5, -5, 0, 0)
+					contentColumnRight.Visible = true
+					for _, sec in ipairs(rightSections) do
+						sec.Parent = contentColumnRight
+					end
+				else
+					contentColumnLeft.Size = UDim2.new(1, 0, 0, 0)
+					contentColumnRight.Visible = false
+					for _, sec in ipairs(rightSections) do
+						sec.Parent = contentColumnLeft
+					end
+				end
+			end
+
+			base:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateLayout)
+			task.defer(updateLayout)
+
 			function TabFunctions:Section(Settings)
 				local SectionFunctions = {}
+				local side = Settings and Settings.Side
+				local isRight = side == "Right"
+
 				local section = Instance.new("Frame")
 				section.Name = "Section"
 				section.AutomaticSize = Enum.AutomaticSize.Y
@@ -1734,7 +1800,13 @@ function WMacLib:Window(Settings)
 				section.Position = UDim2.fromScale(0, 6.78e-08)
 				section.Size = UDim2.fromScale(1, 0)
 				section.ClipsDescendants = true
-				section.Parent = contentColumn  -- Always parent to contentColumn, no side selection
+
+				if isRight then
+					table.insert(rightSections, section)
+				end
+
+				local isWide = base.AbsoluteSize.X >= RESPONSIVE_THRESHOLD
+				section.Parent = (isRight and isWide) and contentColumnRight or contentColumnLeft
 
 				local sectionUICorner = Instance.new("UICorner")
 				sectionUICorner.Name = "SectionUICorner"
@@ -5168,6 +5240,33 @@ function WMacLib:Window(Settings)
 			return TabFunctions
 		end
 
+		function SectionFunctions:Divider()
+			tabIndex += 1
+			local dividerFrame = Instance.new("Frame")
+			dividerFrame.Name = "TabDivider"
+			dividerFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+			dividerFrame.BackgroundTransparency = 1
+			dividerFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+			dividerFrame.BorderSizePixel = 0
+			dividerFrame.Size = UDim2.new(1, -21, 0, 17)
+			dividerFrame.LayoutOrder = tabIndex
+			dividerFrame.AnchorPoint = Vector2.new(0.5, 0)
+			dividerFrame.Position = UDim2.fromScale(0.5, 0)
+
+			local line = Instance.new("Frame")
+			line.Name = "Line"
+			line.AnchorPoint = Vector2.new(0.5, 0.5)
+			line.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+			line.BackgroundTransparency = 0.85
+			line.BorderColor3 = Color3.fromRGB(0, 0, 0)
+			line.BorderSizePixel = 0
+			line.Position = UDim2.fromScale(0.5, 0.5)
+			line.Size = UDim2.new(1, 0, 0, 1)
+			line.Parent = dividerFrame
+
+			dividerFrame.Parent = sectionTabSwitchers
+		end
+
 		return SectionFunctions
 	end
 
@@ -6194,12 +6293,14 @@ function WMacLib:Demo()
 
 	local tabs = {
 		Main = tabGroups.TabGroup1:Tab({ Name = "Demo", Image = "lucide/layout-dashboard" }),
-		Misc = tabGroups.TabGroup1:Tab({ Name = "Misc", Image = "lucide/settings" }),
-		Settings = tabGroups.TabGroup1:Tab({ Name = "Settings", Image = "lucide/sliders-horizontal" })
 	}
+	tabGroups.TabGroup1:Divider()
+	tabs.Misc = tabGroups.TabGroup1:Tab({ Name = "Misc", Image = "lucide/settings" })
+	tabs.Settings = tabGroups.TabGroup1:Tab({ Name = "Settings", Image = "lucide/sliders-horizontal" })
 
 	local sections = {
 		MainSection1 = tabs.Main:Section({}),
+		MainSection2 = tabs.Main:Section({ Side = "Right" }),
 	}
 
 	sections.MainSection1:Header({
@@ -6412,6 +6513,37 @@ function WMacLib:Demo()
 
 	local DemoLabel = sections.MainSection1:Label({
 		Text = '<font color="rgb(73, 230, 133)">Label</font>'
+	})
+
+	sections.MainSection2:Header({
+		Text = "Right Section"
+	})
+
+	sections.MainSection2:Toggle({
+		Name = "Option A",
+		Default = false,
+		Callback = function(value) end,
+	})
+
+	sections.MainSection2:Toggle({
+		Name = "Option B",
+		Default = true,
+		Callback = function(value) end,
+	})
+
+	sections.MainSection2:Slider({
+		Name = "Value",
+		Default = 50,
+		Minimum = 0,
+		Maximum = 100,
+		DisplayMethod = "Percent",
+		Precision = 0,
+		Callback = function(value) end,
+	})
+
+	sections.MainSection2:Button({
+		Name = "Right Button",
+		Callback = function() end,
 	})
 
 	WMacLib:SetFolder("Maclib")
