@@ -1,4 +1,4 @@
-return { 
+return {  
 	Dark = {
 		Name = "Dark",
 		Accent = Color3.fromRGB(24, 24, 27),
