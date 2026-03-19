@@ -1,6 +1,5 @@
 # WMacLib Documentation
 
----
 
 ## Setup
 
