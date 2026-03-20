@@ -4,7 +4,7 @@
 ## Setup
 
 ```lua
-local WMacLib = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/Wicikk/WMacLib/main/WMacLib.lua"))()
+local WMacLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/x7dJJ9vnFH23/WMacLib/refs/heads/main/WMacLib.lua"))()
 ```
 
 ---
