@@ -3239,31 +3239,26 @@ function WMacLib:Window(Settings)
 						local option = OptionObjs[v].Button
 
 						option.MouseButton1Click:Connect(function()
-							local isSelected = table.find(Selected, v) and true or false
-							local newSelected = not isSelected
-
-							if DropdownFunctions.Settings.Required and not newSelected and #Selected <= 1 then
-								return
-							end
-
-							Toggle(v, newSelected)
-
-							task.spawn(function()
-								if DropdownFunctions.Settings.Multi then
-									local Return = {}
-									for _, opt in ipairs(Selected) do
-										Return[opt] = true
-									end
-									if DropdownFunctions.Settings.Callback then
-										DropdownFunctions.Settings.Callback(Return)
-									end
-
-								else
-									if newSelected and DropdownFunctions.Settings.Callback then
-										DropdownFunctions.Settings.Callback(Selected[1] or nil)
-									end
-								end
-							end)
+						    local isSelected = table.find(Selected, v) and true or false
+						    local newSelected = not isSelected
+						
+						    if DropdownFunctions.Settings.Required and not newSelected and #Selected <= 1 then
+						        return
+						    end
+						
+						    Toggle(v, newSelected)
+						
+						    task.spawn(function()
+						        if DropdownFunctions.Settings.Multi then
+						            if DropdownFunctions.Settings.Callback then
+						                DropdownFunctions.Settings.Callback(Selected)
+						            end
+						        else
+						            if newSelected and DropdownFunctions.Settings.Callback then
+						                DropdownFunctions.Settings.Callback(Selected[1] or nil)
+						            end
+						        end
+						    end)
 						end)
 
 						if dropped then
@@ -3336,11 +3331,7 @@ function WMacLib:Window(Settings)
 
 						if DropdownFunctions.Settings.Callback then
 							if DropdownFunctions.Settings.Multi then
-								local Return = {}
-								for _, opt in ipairs(selectedOptions) do
-									Return[opt] = true
-								end
-								DropdownFunctions.Settings.Callback(Return)
+								DropdownFunctions.Settings.Callback(selectedOptions)
 							else
 								DropdownFunctions.Settings.Callback(selectedOptions[1] or nil)
 							end
