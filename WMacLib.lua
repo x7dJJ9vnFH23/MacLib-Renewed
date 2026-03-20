@@ -3236,8 +3236,6 @@ function WMacLib:Window(Settings)
 						end
 						Toggle(v, isSelected)
 
-						local option = OptionObjs[v].Button
-
 						option.MouseButton1Click:Connect(function()
 						    local isSelected = table.find(Selected, v) and true or false
 						    local newSelected = not isSelected
