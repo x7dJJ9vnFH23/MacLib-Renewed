@@ -977,9 +977,14 @@ function WMacLib:Window(Settings)
 	local function onDragStart(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging_ = true
-			dragInput = input
 			dragStart = input.Position
 			startPos = base.Position
+
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging_ = false
+				end
+			end)
 		end
 	end
 
@@ -1004,10 +1009,9 @@ function WMacLib:Window(Settings)
 			end
 		end)
 
-		UserInputService.InputEnded:Connect(function(input)
-			if input == dragInput then
+		interact.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 				dragging_ = false
-				dragInput = nil
 			end
 		end)
 	elseif Settings.DragStyle == 2 then
@@ -1025,10 +1029,9 @@ function WMacLib:Window(Settings)
 			end
 		end)
 
-		UserInputService.InputEnded:Connect(function(input)
-			if input == dragInput then
+		base.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 				dragging_ = false
-				dragInput = nil
 			end
 		end)
 	end
