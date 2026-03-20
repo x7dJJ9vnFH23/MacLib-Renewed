@@ -3,7 +3,7 @@
 ---
 **WMacLib** is a fork of the original [MacLib](https://github.com/biggaboy212/Maclib) UI library with bug fixes and misc.
 
-**[Documentation](https://github.com/Wicikk/WMacLib/blob/main/Documentation.md)** 
+**[Documentation](https://github.com/x7dJJ9vnFH23/MacLib-Renewed/blob/main/Documentation.md)** 
 
 
 ## Demo
