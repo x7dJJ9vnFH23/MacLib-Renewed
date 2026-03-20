@@ -1377,7 +1377,7 @@ function WMacLib:Window(Settings)
 
 	UpdateOrientation(true)
 
-	RunService.RenderStepped:Connect(UpdateOrientation)
+	local LightingShit = RunService.RenderStepped:Connect(UpdateOrientation)
 
 	function WindowFunctions:GlobalSetting(Settings)
 		hasGlobalSetting = true
@@ -5755,6 +5755,7 @@ function WMacLib:Window(Settings)
 		if onUnloadCallback then
 			onUnloadCallback()  
 		end
+		LightingShit:Disconnect()
 		macLib:Destroy()
 		unloaded = true
 	end
