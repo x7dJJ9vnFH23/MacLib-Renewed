@@ -148,14 +148,14 @@ WMacLib:AddTheme({
 
 WMacLib:AddTheme({
 	Name = "Midnight",
-	Accent = Color3.fromRGB(13, 17, 38),
-	Background = Color3.fromRGB(8, 10, 24),
-	Surface = Color3.fromRGB(200, 210, 255),
-	Outline = Color3.fromRGB(60, 80, 180),
-	Text = Color3.fromRGB(210, 220, 255),
-	Placeholder = Color3.fromRGB(90, 100, 150),
-	Button = Color3.fromRGB(40, 55, 120),
-	Icon = Color3.fromRGB(140, 160, 230),
+	Accent = Color3.fromRGB(24, 24, 27),
+	Background = Color3.fromRGB(15, 15, 15),
+	Surface = Color3.fromRGB(255, 255, 255),
+	Outline = Color3.fromRGB(255, 255, 255),
+	Text = Color3.fromRGB(255, 255, 255),
+	Placeholder = Color3.fromRGB(122, 122, 122),
+	Button = Color3.fromRGB(87, 86, 86),
+	Icon = Color3.fromRGB(180, 180, 180),
 })
 
 
