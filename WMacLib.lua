@@ -5783,6 +5783,69 @@ function WMacLib:Window(Settings)
 		end
 	end)
 
+	local toggleBtn = Instance.new("TextButton")
+	toggleBtn.Size = UDim2.fromOffset(120, 36)
+	toggleBtn.Position = UDim2.new(0.5, -60, 0, 10)
+	toggleBtn.BackgroundColor3 = Color3.fromRGB(24, 24, 27)
+	toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	toggleBtn.TextTransparency = 0.2
+	toggleBtn.Text = "☰  " .. (Settings.Title or "Menu")
+	toggleBtn.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.SemiBold)
+	toggleBtn.TextSize = 14
+	toggleBtn.BorderSizePixel = 0
+	toggleBtn.AutoButtonColor = false
+	toggleBtn.Parent = macLib  -- lives inside the same ScreenGui
+	
+	local toggleCorner = Instance.new("UICorner")
+	toggleCorner.CornerRadius = UDim.new(0, 8)
+	toggleCorner.Parent = toggleBtn
+	
+	local toggleStroke = Instance.new("UIStroke")
+	toggleStroke.Color = Color3.fromRGB(255, 255, 255)
+	toggleStroke.Transparency = 0.85
+	toggleStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	toggleStroke.Parent = toggleBtn
+	
+	-- Drag logic
+	local togDragging, togDragStart, togStartPos, togDidDrag = false, nil, nil, false
+	
+	toggleBtn.InputBegan:Connect(function(input)
+	    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+	        togDragging = true
+	        togDidDrag = false
+	        togDragStart = input.Position
+	        togStartPos = toggleBtn.Position
+	    end
+	end)
+	
+	toggleBtn.InputEnded:Connect(function(input)
+	    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+	        togDragging = false
+	    end
+	end)
+	
+	UserInputService.InputChanged:Connect(function(input)
+	    if togDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+	        local delta = input.Position - togDragStart
+	        if math.abs(delta.X) > 3 or math.abs(delta.Y) > 3 then
+	            togDidDrag = true
+	        end
+	        toggleBtn.Position = UDim2.new(
+	            togStartPos.X.Scale,
+	            togStartPos.X.Offset + delta.X,
+	            togStartPos.Y.Scale,
+	            togStartPos.Y.Offset + delta.Y
+	        )
+	    end
+	end)
+	
+	toggleBtn.MouseButton1Click:Connect(function()
+	    if togDidDrag then return end
+	    local newState = not WindowFunctions:GetState()
+	    WindowFunctions:SetState(newState)
+	    toggleBtn.Text = (newState and "☰  " or "▸  ") .. (Settings.Title or "Menu")
+	end)
+
 	minimize.MouseButton1Click:Connect(ToggleMenu)
 	exit.MouseButton1Click:Connect(function()
 		WindowFunctions:Dialog({
