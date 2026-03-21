@@ -5789,7 +5789,7 @@ function WMacLib:Window(Settings)
 	toggleBtn.BackgroundColor3 = Color3.fromRGB(24, 24, 27)
 	toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 	toggleBtn.TextTransparency = 0.2
-	toggleBtn.Text = "☰  " .. (Settings.Title or "Menu")
+	toggleBtn.Text = Settings.Title or "Menu")
 	toggleBtn.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.SemiBold)
 	toggleBtn.TextSize = 14
 	toggleBtn.BorderSizePixel = 0
@@ -5843,7 +5843,7 @@ function WMacLib:Window(Settings)
 	    if togDidDrag then return end
 	    local newState = not WindowFunctions:GetState()
 	    WindowFunctions:SetState(newState)
-	    toggleBtn.Text = (newState and "☰  " or "▸  ") .. (Settings.Title or "Menu")
+	    toggleBtn.Text = Settings.Title or "Menu"
 	end)
 
 	minimize.MouseButton1Click:Connect(ToggleMenu)
