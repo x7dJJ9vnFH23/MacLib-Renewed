@@ -5789,7 +5789,7 @@ function WMacLib:Window(Settings)
 	toggleBtn.BackgroundColor3 = Color3.fromRGB(89, 90, 95)
 	toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 	toggleBtn.TextTransparency = 0.2
-	toggleBtn.Text = Settings.Title or "Menu")
+	toggleBtn.Text = Settings.Title or "Menu"
 	toggleBtn.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.SemiBold)
 	toggleBtn.TextSize = 14
 	toggleBtn.BorderSizePixel = 0
