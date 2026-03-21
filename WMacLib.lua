@@ -5786,7 +5786,7 @@ function WMacLib:Window(Settings)
 	local toggleBtn = Instance.new("TextButton")
 	toggleBtn.Size = UDim2.fromOffset(120, 36)
 	toggleBtn.Position = UDim2.new(0.5, -60, 0, 10)
-	toggleBtn.BackgroundColor3 = Color3.fromRGB(24, 24, 27)
+	toggleBtn.BackgroundColor3 = Color3.fromRGB(89, 90, 95)
 	toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 	toggleBtn.TextTransparency = 0.2
 	toggleBtn.Text = Settings.Title or "Menu")
