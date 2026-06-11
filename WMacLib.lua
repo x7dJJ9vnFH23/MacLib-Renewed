@@ -288,7 +288,9 @@ function WMacLib:Window(Settings)
 	base.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	base.BorderSizePixel = 0
 	base.Position = UDim2.fromScale(0.5, 0.5)
-	base.Size = Settings.Size or UDim2.fromOffset(868, 650)
+	local screenSize = workspace.CurrentCamera.ViewportSize
+	local isMobile = screenSize.X < 600
+	base.Size = Settings.Size or (isMobile and UDim2.new(0.96, 0, 0.88, 0) or UDim2.fromOffset(868, 650))
 
 	local baseUIScale = Instance.new("UIScale")
 	baseUIScale.Name = "BaseUIScale"
@@ -313,7 +315,9 @@ function WMacLib:Window(Settings)
 	sidebar.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	sidebar.BorderSizePixel = 0
 	sidebar.Position = UDim2.fromScale(-3.52e-08, 4.69e-08)
-	sidebar.Size = UDim2.fromScale(0.325, 1)
+	local sidebarScreen = workspace.CurrentCamera.ViewportSize
+	local sidebarScale = sidebarScreen.X < 500 and 0.28 or 0.325
+	sidebar.Size = UDim2.fromScale(sidebarScale, 1)
 
 	local divider = Instance.new("Frame")
 	divider.Name = "Divider"
@@ -3507,7 +3511,8 @@ function WMacLib:Window(Settings)
 					prompt.BorderColor3 = Color3.fromRGB(0, 0, 0)
 					prompt.BorderSizePixel = 0
 					prompt.Position = UDim2.fromScale(0.5, 0.5)
-					prompt.Size = UDim2.fromOffset(420, 0)
+					local cpScreen = workspace.CurrentCamera.ViewportSize
+					prompt.Size = cpScreen.X < 500 and UDim2.new(0.92, 0, 0, 0) or UDim2.fromOffset(420, 0)
 
 					local promptUIScale = Instance.new("UIScale")
 					promptUIScale.Name = "BaseUIScale"
@@ -5273,7 +5278,9 @@ function WMacLib:Window(Settings)
 		notification.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		notification.BorderSizePixel = 0
 		notification.Position = UDim2.fromScale(0.5, 0.5)
-		notification.Size = UDim2.fromOffset(Settings.SizeX or 250, 0)
+		local notifScreen = workspace.CurrentCamera.ViewportSize
+		local notifWidth = math.min(Settings.SizeX or 250, notifScreen.X * 0.85)
+		notification.Size = UDim2.fromOffset(notifWidth, 0)
 
 		notification.Parent = notifications
 
@@ -5508,7 +5515,8 @@ function WMacLib:Window(Settings)
 		prompt.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		prompt.BorderSizePixel = 0
 		prompt.Position = UDim2.fromScale(0.5, 0.5)
-		prompt.Size = UDim2.fromOffset(280, 0)
+		local dialogScreen = workspace.CurrentCamera.ViewportSize
+		prompt.Size = dialogScreen.X < 400 and UDim2.new(0.9, 0, 0, 0) or UDim2.fromOffset(280, 0)
 
 		local promptUIScale = Instance.new("UIScale")
 		promptUIScale.Name = "BaseUIScale"
@@ -5784,8 +5792,9 @@ function WMacLib:Window(Settings)
 	end)
 
 	local toggleBtn = Instance.new("TextButton")
-	toggleBtn.Size = UDim2.fromOffset(120, 36)
-	toggleBtn.Position = UDim2.new(0.5, -60, 0, 10)
+	local isMobileBtn = workspace.CurrentCamera.ViewportSize.X < 600
+	toggleBtn.Size = isMobileBtn and UDim2.fromOffset(90, 30) or UDim2.fromOffset(120, 36)
+	toggleBtn.Position = UDim2.new(0.5, isMobileBtn and -45 or -60, 0, 10)
 	toggleBtn.BackgroundColor3 = Color3.fromRGB(23, 23, 23)
 	toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 	toggleBtn.TextTransparency = 0.2
